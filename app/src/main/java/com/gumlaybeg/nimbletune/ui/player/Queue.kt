@@ -877,7 +877,7 @@ fun QueueCollapsedContentV4(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(id = R.string.lyrics),
+                    text = stringResource(id = R.string.lyrics_settings_title),
                     color = textBackgroundColor,
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
