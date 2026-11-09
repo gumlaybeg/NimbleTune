@@ -1,8 +1,11 @@
 package com.gumlaybeg.nimbletune.ui.screens.settings
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,12 +13,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -23,14 +30,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.gumlaybeg.nimbletune.App.Companion.forgetAccount
 import com.gumlaybeg.nimbletune.LocalPlayerAwareWindowInsets
@@ -53,13 +61,11 @@ import com.gumlaybeg.nimbletune.constants.SYSTEM_DEFAULT
 import com.gumlaybeg.nimbletune.constants.UseLoginForBrowse
 import com.gumlaybeg.nimbletune.constants.VisitorDataKey
 import com.gumlaybeg.nimbletune.constants.YtmSyncKey
-import com.gumlaybeg.nimbletune.ui.component.EditTextPreference
-import com.gumlaybeg.nimbletune.ui.component.IconButton
+import com.gumlaybeg.nimbletune.ui.component.EnumDialog
+import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
 import com.gumlaybeg.nimbletune.ui.component.InfoLabel
-import com.gumlaybeg.nimbletune.ui.component.ListPreference
-import com.gumlaybeg.nimbletune.ui.component.PreferenceEntry
-import com.gumlaybeg.nimbletune.ui.component.PreferenceGroupTitle
-import com.gumlaybeg.nimbletune.ui.component.SwitchPreference
+import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
+import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.component.TextFieldDialog
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
@@ -68,7 +74,6 @@ import com.zionhuang.innertube.YouTube
 import com.zionhuang.innertube.utils.parseCookieString
 import java.net.Proxy
 
-@SuppressLint("PrivateResource")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentSettings(
@@ -95,194 +100,313 @@ fun ContentSettings(
     val (proxyEnabled, onProxyEnabledChange) = rememberPreference(key = ProxyEnabledKey, defaultValue = false)
     val (proxyType, onProxyTypeChange) = rememberEnumPreference(key = ProxyTypeKey, defaultValue = Proxy.Type.HTTP)
     val (proxyUrl, onProxyUrlChange) = rememberPreference(key = ProxyUrlKey, defaultValue = "host:port")
-
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
 
-    // temp vars
-    var showToken: Boolean by remember {
-        mutableStateOf(false)
+    var showToken by remember { mutableStateOf(false) }
+    var showTokenEditor by remember { mutableStateOf(false) }
+    var showContentLanguageDialog by rememberSaveable { mutableStateOf(false) }
+    var showContentCountryDialog by rememberSaveable { mutableStateOf(false) }
+    var showAutoDownloadDialog by rememberSaveable { mutableStateOf(false) }
+    var showProxyTypeDialog by rememberSaveable { mutableStateOf(false) }
+    var showProxyUrlDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showContentLanguageDialog) {
+        EnumDialog(
+            onDismiss = { showContentLanguageDialog = false },
+            onSelect = {
+                onContentLanguageChange(it)
+                showContentLanguageDialog = false
+            },
+            title = stringResource(R.string.content_language),
+            current = contentLanguage,
+            values = listOf(SYSTEM_DEFAULT) + LanguageCodeToName.keys.toList(),
+            valueText = {
+                LanguageCodeToName.getOrElse(it) { stringResource(R.string.system_default) }
+            }
+        )
     }
 
-    var showTokenEditor by remember {
-        mutableStateOf(false)
+    if (showContentCountryDialog) {
+        EnumDialog(
+            onDismiss = { showContentCountryDialog = false },
+            onSelect = {
+                onContentCountryChange(it)
+                showContentCountryDialog = false
+            },
+            title = stringResource(R.string.content_country),
+            current = contentCountry,
+            values = listOf(SYSTEM_DEFAULT) + CountryCodeToName.keys.toList(),
+            valueText = {
+                CountryCodeToName.getOrElse(it) { stringResource(R.string.system_default) }
+            }
+        )
+    }
+
+    if (showAutoDownloadDialog) {
+        EnumDialog(
+            onDismiss = { showAutoDownloadDialog = false },
+            onSelect = {
+                onLikedAutoDownload(it)
+                showAutoDownloadDialog = false
+            },
+            title = stringResource(R.string.like_autodownload),
+            current = likedAutoDownload,
+            values = LikedAutodownloadMode.entries.toList(),
+            valueText = {
+                when (it) {
+                    LikedAutodownloadMode.OFF -> stringResource(R.string.state_off)
+                    LikedAutodownloadMode.ON -> stringResource(R.string.state_on)
+                    LikedAutodownloadMode.WIFI_ONLY -> stringResource(R.string.wifi_only)
+                }
+            }
+        )
+    }
+
+    if (showProxyTypeDialog) {
+        EnumDialog(
+            onDismiss = { showProxyTypeDialog = false },
+            onSelect = {
+                onProxyTypeChange(it)
+                showProxyTypeDialog = false
+            },
+            title = stringResource(R.string.proxy_type),
+            current = proxyType,
+            values = listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS),
+            valueText = { it.name }
+        )
+    }
+
+    if (showProxyUrlDialog) {
+        TextFieldDialog(
+            title = { Text(stringResource(R.string.proxy_url)) },
+            initialTextFieldValue = TextFieldValue(proxyUrl),
+            onDone = {
+                onProxyUrlChange(it)
+                showProxyUrlDialog = false
+            },
+            onDismiss = { showProxyUrlDialog = false }
+        )
+    }
+
+    if (showTokenEditor) {
+        val text = "***INNERTUBE COOKIE*** =${innerTubeCookie}\n\n***VISITOR DATA*** =${visitorData}\n\n***DATASYNC ID*** =${dataSyncId}\n\n***ACCOUNT NAME*** =${accountName}\n\n***ACCOUNT EMAIL*** =${accountEmail}\n\n***ACCOUNT CHANNEL HANDLE*** =${accountChannelHandle}"
+        TextFieldDialog(
+            initialTextFieldValue = TextFieldValue(text),
+            onDone = { data ->
+                data.split("\n").forEach {
+                    if (it.startsWith("***INNERTUBE COOKIE*** =")) onInnerTubeCookieChange(it.substringAfter("="))
+                    else if (it.startsWith("***VISITOR DATA*** =")) onVisitorDataChange(it.substringAfter("="))
+                    else if (it.startsWith("***DATASYNC ID*** =")) onDataSyncIdChange(it.substringAfter("="))
+                    else if (it.startsWith("***ACCOUNT NAME*** =")) onAccountNameChange(it.substringAfter("="))
+                    else if (it.startsWith("***ACCOUNT EMAIL*** =")) onAccountEmailChange(it.substringAfter("="))
+                    else if (it.startsWith("***ACCOUNT CHANNEL HANDLE*** =")) onAccountChannelHandleChange(it.substringAfter("="))
+                }
+                showTokenEditor = false
+            },
+            onDismiss = { showTokenEditor = false },
+            singleLine = false,
+            maxLines = 20,
+            isInputValid = {
+                it.isNotEmpty() && runCatching { "SAPISID" in parseCookieString(it) }.getOrDefault(false)
+            },
+            extraContent = {
+                InfoLabel(text = stringResource(R.string.token_adv_login_description))
+            }
+        )
     }
 
     Column(
-        Modifier
+        modifier = Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
             .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        PreferenceGroupTitle(
-            title = stringResource(R.string.account)
+        Text(
+            text = stringResource(R.string.content),
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
-        PreferenceEntry(
-            title = { Text(if (isLoggedIn) accountName else stringResource(R.string.login)) },
-            description = if (isLoggedIn) {
-                accountEmail.takeIf { it.isNotEmpty() }
-                    ?: accountChannelHandle.takeIf { it.isNotEmpty() }
-            } else null,
-            icon = { Icon(Icons.Rounded.Person, null) },
-            onClick = { navController.navigate("login") }
-        )
-        if (isLoggedIn) {
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.logout)) },
-                icon = { Icon(Icons.AutoMirrored.Rounded.Logout, null) },
-                onClick = {
-                    forgetAccount(context)
-                }
-            )
-        }
 
-        if (showTokenEditor) {
-            val text =
-                "***INNERTUBE COOKIE*** =${innerTubeCookie}\n\n***VISITOR DATA*** =${visitorData}\n\n***DATASYNC ID*** =${dataSyncId}\n\n***ACCOUNT NAME*** =${accountName}\n\n***ACCOUNT EMAIL*** =${accountEmail}\n\n***ACCOUNT CHANNEL HANDLE*** =${accountChannelHandle}"
-            TextFieldDialog(
-                modifier = Modifier,
-                initialTextFieldValue = TextFieldValue(text),
-                onDone = { data ->
-                   data.split("\n").forEach {
-                        if (it.startsWith("***INNERTUBE COOKIE*** =")) {
-                            onInnerTubeCookieChange(it.substringAfter("***INNERTUBE COOKIE*** ="))
-                        } else if (it.startsWith("***VISITOR DATA*** =")) {
-                            onVisitorDataChange(it.substringAfter("***VISITOR DATA*** ="))
-                        } else if (it.startsWith("***DATASYNC ID*** =")) {
-                            onDataSyncIdChange(it.substringAfter("***DATASYNC ID*** ="))
-                        } else if (it.startsWith("***ACCOUNT NAME*** =")) {
-                            onAccountNameChange(it.substringAfter("***ACCOUNT NAME*** ="))
-                        } else if (it.startsWith("***ACCOUNT EMAIL*** =")) {
-                            onAccountEmailChange(it.substringAfter("***ACCOUNT EMAIL*** ="))
-                        } else if (it.startsWith("***ACCOUNT CHANNEL HANDLE*** =")) {
-                            onAccountChannelHandleChange(it.substringAfter("***ACCOUNT CHANNEL HANDLE*** ="))
-                        }
-                    }
-                },
-                onDismiss = { showTokenEditor = false },
-                singleLine = false,
-                maxLines = 20,
-                isInputValid = {
-                    it.isNotEmpty() &&
-                    try {
-                        "SAPISID" in parseCookieString(it)
-                        true
-                    } catch (e: Exception) {
-                        false
-                    }
-                },
-                extraContent = {
-                    InfoLabel(text = stringResource(R.string.token_adv_login_description))
-                }
-            )
-        }
-
-        PreferenceEntry(
-            title = {
-                if (showToken) {
-                    Text(stringResource(R.string.token_shown))
-                    Text(
-                        text = if (isLoggedIn) innerTubeCookie else stringResource(R.string.not_logged_in),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Light,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1 // just give a preview so user knows it's at least there
+        // Account Section
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.account),
+            items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Person),
+                        title = { Text(if (isLoggedIn) accountName else stringResource(R.string.login)) },
+                        description = if (isLoggedIn) {
+                            {
+                                Text(
+                                    accountEmail.ifEmpty { accountChannelHandle.ifEmpty { stringResource(R.string.account) } }
+                                )
+                            }
+                        } else null,
+                        onClick = { navController.navigate("login") }
                     )
-                } else {
-                    Text(stringResource(R.string.token_hidden))
-                }
-            },
-            onClick = {
-                if (showToken == false) {
-                    showToken = true
-                } else {
-                    showTokenEditor = true
-                }
-            },
-        )
+                )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.ytm_sync)) },
-            icon = { Icon(Icons.Rounded.Sync, null) },
-            checked = ytmSync,
-            onCheckedChange = onYtmSyncChange,
-            isEnabled = isLoggedIn
-        )
-        ListPreference(
-            title = { Text(stringResource(R.string.like_autodownload)) },
-            icon = { Icon(Icons.Rounded.Favorite, null) },
-            values = listOf(LikedAutodownloadMode.OFF, LikedAutodownloadMode.ON, LikedAutodownloadMode.WIFI_ONLY),
-            selectedValue = likedAutoDownload,
-            valueText = { when (it) {
-                LikedAutodownloadMode.OFF -> stringResource(androidx.compose.ui.R.string.state_off)
-                LikedAutodownloadMode.ON -> stringResource(androidx.compose.ui.R.string.state_on)
-                LikedAutodownloadMode.WIFI_ONLY -> stringResource(R.string.wifi_only)
-            } },
-            onValueSelected = onLikedAutoDownload
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.use_login_for_browse)) },
-            description = stringResource(R.string.use_login_for_browse_desc),
-            icon = { Icon(Icons.Rounded.Person, null) },
-            checked = useLoginForBrowse,
-            onCheckedChange = {
-                YouTube.useLoginForBrowse = it
-                onUseLoginForBrowseChange(it)
+                if (isLoggedIn) {
+                    add(
+                        Material3SettingsItem(
+                            icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.Logout),
+                            title = { Text(stringResource(R.string.logout)) },
+                            onClick = { forgetAccount(context) }
+                        )
+                    )
+                }
+
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Key),
+                        title = {
+                            Text(
+                                if (showToken) stringResource(R.string.token_shown)
+                                else stringResource(R.string.token_hidden)
+                            )
+                        },
+                        description = if (showToken) {
+                            {
+                                Text(
+                                    text = if (isLoggedIn) innerTubeCookie else stringResource(R.string.not_logged_in),
+                                    maxLines = 1
+                                )
+                            }
+                        } else null,
+                        onClick = {
+                            if (!showToken) showToken = true
+                            else showTokenEditor = true
+                        }
+                    )
+                )
+
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Sync),
+                        title = { Text(stringResource(R.string.ytm_sync)) },
+                        enabled = isLoggedIn,
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = ytmSync,
+                                onCheckedChange = onYtmSyncChange,
+                                enabled = isLoggedIn
+                            )
+                        },
+                        onClick = { if (isLoggedIn) onYtmSyncChange(!ytmSync) }
+                    )
+                )
+
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Favorite),
+                        title = { Text(stringResource(R.string.like_autodownload)) },
+                        description = {
+                            Text(
+                                when (likedAutoDownload) {
+                                    LikedAutodownloadMode.OFF -> stringResource(R.string.state_off)
+                                    LikedAutodownloadMode.ON -> stringResource(R.string.state_on)
+                                    LikedAutodownloadMode.WIFI_ONLY -> stringResource(R.string.wifi_only)
+                                }
+                            )
+                        },
+                        onClick = { showAutoDownloadDialog = true }
+                    )
+                )
+
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Person),
+                        title = { Text(stringResource(R.string.use_login_for_browse)) },
+                        description = { Text(stringResource(R.string.use_login_for_browse_desc)) },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = useLoginForBrowse,
+                                onCheckedChange = {
+                                    YouTube.useLoginForBrowse = it
+                                    onUseLoginForBrowseChange(it)
+                                }
+                            )
+                        },
+                        onClick = {
+                            val newValue = !useLoginForBrowse
+                            YouTube.useLoginForBrowse = newValue
+                            onUseLoginForBrowseChange(newValue)
+                        }
+                    )
+                )
             }
         )
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.grp_localization)
-        )
-        ListPreference(
-            title = { Text(stringResource(R.string.content_language)) },
-            icon = { Icon(Icons.Rounded.Language, null) },
-            selectedValue = contentLanguage,
-            values = listOf(SYSTEM_DEFAULT) + LanguageCodeToName.keys.toList(),
-            valueText = {
-                LanguageCodeToName.getOrElse(it) {
-                    stringResource(R.string.system_default)
-                }
-            },
-            onValueSelected = onContentLanguageChange
-        )
-        ListPreference(
-            title = { Text(stringResource(R.string.content_country)) },
-            icon = { Icon(Icons.Rounded.LocationOn, null) },
-            selectedValue = contentCountry,
-            values = listOf(SYSTEM_DEFAULT) + CountryCodeToName.keys.toList(),
-            valueText = {
-                CountryCodeToName.getOrElse(it) {
-                    stringResource(R.string.system_default)
-                }
-            },
-            onValueSelected = onContentCountryChange
+        // Localization Section
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.grp_localization),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Language),
+                    title = { Text(stringResource(R.string.content_language)) },
+                    description = {
+                        Text(
+                            LanguageCodeToName.getOrElse(contentLanguage) { stringResource(R.string.system_default) }
+                        )
+                    },
+                    onClick = { showContentLanguageDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.LocationOn),
+                    title = { Text(stringResource(R.string.content_country)) },
+                    description = {
+                        Text(
+                            CountryCodeToName.getOrElse(contentCountry) { stringResource(R.string.system_default) }
+                        )
+                    },
+                    onClick = { showContentCountryDialog = true }
+                )
+            )
         )
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.grp_proxy)
+        // Proxy Section
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.grp_proxy),
+            items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Wifi),
+                        title = { Text(stringResource(R.string.enable_proxy)) },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = proxyEnabled,
+                                onCheckedChange = onProxyEnabledChange
+                            )
+                        },
+                        onClick = { onProxyEnabledChange(!proxyEnabled) }
+                    )
+                )
+                if (proxyEnabled) {
+                    add(
+                        Material3SettingsItem(
+                            title = { Text(stringResource(R.string.proxy_type)) },
+                            description = { Text(proxyType.name) },
+                            onClick = { showProxyTypeDialog = true }
+                        )
+                    )
+                    add(
+                        Material3SettingsItem(
+                            title = { Text(stringResource(R.string.proxy_url)) },
+                            description = { Text(proxyUrl) },
+                            onClick = { showProxyUrlDialog = true }
+                        )
+                    )
+                }
+            }
         )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_proxy)) },
-            checked = proxyEnabled,
-            onCheckedChange = onProxyEnabledChange
-        )
-        AnimatedVisibility(proxyEnabled) {
-            ListPreference(
-                title = { Text(stringResource(R.string.proxy_type)) },
-                selectedValue = proxyType,
-                values = listOf(Proxy.Type.HTTP, Proxy.Type.SOCKS),
-                valueText = { it.name },
-                onValueSelected = onProxyTypeChange
-            )
-            EditTextPreference(
-                title = { Text(stringResource(R.string.proxy_url)) },
-                value = proxyUrl,
-                onValueChange = onProxyUrlChange
-            )
-        }
+
+        Spacer(modifier = Modifier.height(48.dp))
     }
 
     TopAppBar(
-        title = { Text(stringResource(R.string.content)) },
+        title = { },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

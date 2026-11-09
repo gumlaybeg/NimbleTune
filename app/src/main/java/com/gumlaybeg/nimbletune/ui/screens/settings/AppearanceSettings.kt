@@ -1,15 +1,16 @@
 package com.gumlaybeg.nimbletune.ui.screens.settings
 
 import android.os.Build
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.rounded.Reorder
 import androidx.compose.material.icons.rounded.Tab
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -48,7 +50,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.gumlaybeg.nimbletune.LocalPlayerAwareWindowInsets
@@ -69,12 +73,11 @@ import com.gumlaybeg.nimbletune.constants.SwipeToQueueKey
 import com.gumlaybeg.nimbletune.constants.ThumbnailCornerRadius
 import com.gumlaybeg.nimbletune.extensions.move
 import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
-import com.gumlaybeg.nimbletune.ui.component.EnumListPreference
-import com.gumlaybeg.nimbletune.ui.component.IconButton
+import com.gumlaybeg.nimbletune.ui.component.EnumDialog
+import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
 import com.gumlaybeg.nimbletune.ui.component.InfoLabel
-import com.gumlaybeg.nimbletune.ui.component.PreferenceEntry
-import com.gumlaybeg.nimbletune.ui.component.PreferenceGroupTitle
-import com.gumlaybeg.nimbletune.ui.component.SwitchPreference
+import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
+import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.decodeTabString
 import com.gumlaybeg.nimbletune.utils.encodeTabString
@@ -83,22 +86,9 @@ import com.gumlaybeg.nimbletune.utils.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-/**
- * H: Home
- * S: Songs
- * F: Folders
- * A: Artists
- * B: Albums
- * L: Playlists
- *
- * Not/won't implement
- * P: Player
- * Q: Queue
- * E: Search
- */
 const val DEFAULT_ENABLED_TABS = "HSABLF"
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceSettings(
     navController: NavController,
@@ -121,39 +111,28 @@ fun AppearanceSettings(
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
 
-    // configurable tabs
-    var showTabArrangement by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var showDarkModeDialog by rememberSaveable { mutableStateOf(false) }
+    var showPlayerBackgroundDialog by rememberSaveable { mutableStateOf(false) }
+    var showDefaultOpenTabDialog by rememberSaveable { mutableStateOf(false) }
+    var showTabArrangement by rememberSaveable { mutableStateOf(false) }
+
     val mutableTabs = remember { mutableStateListOf<NavigationTab>() }
-
-
     val lazySongsListState = rememberLazyListState()
-    var dragInfo by remember {
-        mutableStateOf<Pair<Int, Int>?>(null)
-    }
+    var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = lazySongsListState,
         scrollThresholdPadding = WindowInsets.systemBars.add(
-            WindowInsets(
-                top = ListItemHeight,
-                bottom = ListItemHeight
-            )
+            WindowInsets(top = ListItemHeight, bottom = ListItemHeight)
         ).asPaddingValues()
     ) { from, to ->
         val currentDragInfo = dragInfo
-        dragInfo = if (currentDragInfo == null) {
-            from.index to to.index
-        } else {
-            currentDragInfo.first to to.index
-        }
+        dragInfo = if (currentDragInfo == null) from.index to to.index else currentDragInfo.first to to.index
         mutableTabs.move(from.index, to.index)
     }
 
     fun updateTabs() {
         mutableTabs.apply {
             clear()
-
             val enabled = decodeTabString(enabledTabs)
             addAll(enabled)
             add(NavigationTab.NULL)
@@ -165,25 +144,16 @@ fun AppearanceSettings(
         updateTabs()
     }
 
-    Column(
-        Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-            .verticalScroll(rememberScrollState())
-    ) {
-        PreferenceGroupTitle(
-            title = stringResource(R.string.theme)
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_dynamic_theme)) },
-            icon = { Icon(Icons.Rounded.Palette, null) },
-            checked = dynamicTheme,
-            onCheckedChange = onDynamicThemeChange
-        )
-        EnumListPreference(
-            title = { Text(stringResource(R.string.dark_theme)) },
-            icon = { Icon(Icons.Rounded.DarkMode, null) },
-            selectedValue = darkMode,
-            onValueSelected = onDarkModeChange,
+    if (showDarkModeDialog) {
+        EnumDialog(
+            onDismiss = { showDarkModeDialog = false },
+            onSelect = {
+                onDarkModeChange(it)
+                showDarkModeDialog = false
+            },
+            title = stringResource(R.string.dark_theme),
+            current = darkMode,
+            values = DarkMode.entries.toList(),
             valueText = {
                 when (it) {
                     DarkMode.ON -> stringResource(R.string.dark_theme_on)
@@ -192,150 +162,39 @@ fun AppearanceSettings(
                 }
             }
         )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.pure_black)) },
-            icon = { Icon(Icons.Rounded.Contrast, null) },
-            checked = pureBlack,
-            onCheckedChange = onPureBlackChange
-        )
-        EnumListPreference(
-            title = { Text(stringResource(R.string.player_background_style)) },
-            icon = { Icon(Icons.Rounded.BlurOn, null) },
-            selectedValue = playerBackground,
-            onValueSelected = onPlayerBackgroundChange,
+    }
+
+    if (showPlayerBackgroundDialog) {
+        EnumDialog(
+            onDismiss = { showPlayerBackgroundDialog = false },
+            onSelect = {
+                onPlayerBackgroundChange(it)
+                showPlayerBackgroundDialog = false
+            },
+            title = stringResource(R.string.player_background_style),
+            current = playerBackground,
+            values = availableBackgroundStyles,
             valueText = {
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.player_background_default)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.player_background_gradient)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                 }
-            },
-            values = availableBackgroundStyles
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.grp_interface)
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.new_interface)) },
-            icon = { Icon(Icons.Rounded.Palette, null) },
-            checked = newInterfaceStyle,
-            onCheckedChange = onNewInterfaceStyleChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.show_liked_and_downloaded_playlist)) },
-            icon = { Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null) },
-            checked = showLikedAndDownloadedPlaylist,
-            onCheckedChange = onShowLikedAndDownloadedPlaylistChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.swipe2Queue)) },
-            description = stringResource(R.string.swipe2Queue_description),
-            icon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) },
-            checked = swipe2Queue,
-            onCheckedChange = onSwipe2QueueChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.slim_navbar_title)) },
-            description = stringResource(R.string.slim_navbar_description),
-            icon = { Icon(Icons.Rounded.MoreHoriz, null) },
-            checked = slimNav,
-            onCheckedChange = onSlimNavChange
-        )
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.tab_arrangement)) },
-            icon = { Icon(Icons.Rounded.Reorder, null) },
-            onClick = {
-                showTabArrangement = true
             }
         )
+    }
 
-        if (showTabArrangement)
-            ActionPromptDialog(
-                title = stringResource(R.string.tab_arrangement),
-                onDismiss = { showTabArrangement = false },
-                onConfirm = {
-                    var encoded = encodeTabString(mutableTabs)
-
-                    // reset defaultOpenTab if it got disabled
-                    if (!mutableTabs.contains(defaultOpenTab)) {
-                        onDefaultOpenTabChange(NavigationTab.HOME)
-                    }
-
-                    // home is required
-                    if (!encoded.contains('H')) {
-                        encoded += "H"
-                    }
-
-                    onEnabledTabsChange(encoded)
-                    showTabArrangement = false
-                },
-                onReset = {
-                    onEnabledTabsChange(DEFAULT_ENABLED_TABS)
-                    updateTabs()
-                },
-                onCancel = {
-                    showTabArrangement = false
-                }
-            ) {
-                // tabs list
-                LazyColumn(
-                    state = lazySongsListState,
-                    modifier = Modifier
-                        .padding(vertical = 12.dp)
-                        .border(
-                            2.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            RoundedCornerShape(ThumbnailCornerRadius)
-                        )
-                ) {
-                    itemsIndexed(
-                        items = mutableTabs,
-                        key = { _, item -> item.hashCode() }
-                    ) { index, tab ->
-                        ReorderableItem(
-                            state = reorderableState,
-                            key = tab.hashCode()
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .padding(horizontal = 24.dp, vertical = 8.dp)
-                                    .fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = when (tab) {
-                                        NavigationTab.HOME -> stringResource(R.string.home)
-                                        NavigationTab.SONG -> stringResource(R.string.songs)
-                                        NavigationTab.FOLDERS -> stringResource(R.string.folders)
-                                        NavigationTab.ARTIST -> stringResource(R.string.artists)
-                                        NavigationTab.ALBUM -> stringResource(R.string.albums)
-                                        NavigationTab.PLAYLIST -> stringResource(R.string.playlists)
-                                        else -> {
-                                            stringResource(R.string.tab_arrangement_disable_tip)
-                                        }
-                                    }
-                                )
-                                Icon(
-                                    imageVector = Icons.Rounded.DragHandle,
-                                    contentDescription = null,
-                                    modifier = Modifier.draggableHandle()
-                                )
-                            }
-                        }
-                    }
-                }
-
-                InfoLabel(stringResource(R.string.tab_arrangement_home_required))
-            }
-
+    if (showDefaultOpenTabDialog) {
         if (newInterfaceStyle) {
-            EnumListPreference(
-                title = { Text(stringResource(R.string.default_open_tab)) },
-                icon = { Icon(Icons.Rounded.Tab, null) },
-                selectedValue = defaultOpenTabNew,
-                onValueSelected = onDefaultOpenTabNewChange,
+            EnumDialog(
+                onDismiss = { showDefaultOpenTabDialog = false },
+                onSelect = {
+                    onDefaultOpenTabNewChange(it)
+                    showDefaultOpenTabDialog = false
+                },
+                title = stringResource(R.string.default_open_tab),
+                current = defaultOpenTabNew,
+                values = NavigationTabNew.entries.toList(),
                 valueText = {
                     when (it) {
                         NavigationTabNew.HOME -> stringResource(R.string.home)
@@ -344,11 +203,14 @@ fun AppearanceSettings(
                 }
             )
         } else {
-            EnumListPreference(
-                title = { Text(stringResource(R.string.default_open_tab)) },
-                icon = { Icon(Icons.Rounded.Tab, null) },
-                selectedValue = defaultOpenTab,
-                onValueSelected = onDefaultOpenTabChange,
+            EnumDialog(
+                onDismiss = { showDefaultOpenTabDialog = false },
+                onSelect = {
+                    onDefaultOpenTabChange(it)
+                    showDefaultOpenTabDialog = false
+                },
+                title = stringResource(R.string.default_open_tab),
+                current = defaultOpenTab,
                 values = NavigationTab.entries.filter { it != NavigationTab.NULL },
                 valueText = {
                     when (it) {
@@ -363,19 +225,246 @@ fun AppearanceSettings(
                 }
             )
         }
+    }
 
-        // flatten subfolders
-        SwitchPreference(
-            title = { Text(stringResource(R.string.flat_subfolders_title)) },
-            description = stringResource(R.string.flat_subfolders_description),
-            icon = { Icon(Icons.Rounded.FolderCopy, null) },
-            checked = flatSubfolders,
-            onCheckedChange = onFlatSubfoldersChange
+    if (showTabArrangement) {
+        ActionPromptDialog(
+            title = stringResource(R.string.tab_arrangement),
+            onDismiss = { showTabArrangement = false },
+            onConfirm = {
+                var encoded = encodeTabString(mutableTabs)
+                if (!mutableTabs.contains(defaultOpenTab)) {
+                    onDefaultOpenTabChange(NavigationTab.HOME)
+                }
+                if (!encoded.contains('H')) {
+                    encoded += "H"
+                }
+                onEnabledTabsChange(encoded)
+                showTabArrangement = false
+            },
+            onReset = {
+                onEnabledTabsChange(DEFAULT_ENABLED_TABS)
+                updateTabs()
+            },
+            onCancel = { showTabArrangement = false }
+        ) {
+            LazyColumn(
+                state = lazySongsListState,
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(ThumbnailCornerRadius))
+            ) {
+                itemsIndexed(items = mutableTabs, key = { _, item -> item.hashCode() }) { _, tab ->
+                    ReorderableItem(state = reorderableState, key = tab.hashCode()) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Text(
+                                text = when (tab) {
+                                    NavigationTab.HOME -> stringResource(R.string.home)
+                                    NavigationTab.SONG -> stringResource(R.string.songs)
+                                    NavigationTab.FOLDERS -> stringResource(R.string.folders)
+                                    NavigationTab.ARTIST -> stringResource(R.string.artists)
+                                    NavigationTab.ALBUM -> stringResource(R.string.albums)
+                                    NavigationTab.PLAYLIST -> stringResource(R.string.playlists)
+                                    else -> stringResource(R.string.tab_arrangement_disable_tip)
+                                }
+                            )
+                            Icon(
+                                imageVector = Icons.Rounded.DragHandle,
+                                contentDescription = null,
+                                modifier = Modifier.draggableHandle()
+                            )
+                        }
+                    }
+                }
+            }
+            InfoLabel(stringResource(R.string.tab_arrangement_home_required))
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.appearance),
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
+
+        // Theme Section
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.theme),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Palette),
+                    title = { Text(stringResource(R.string.enable_dynamic_theme)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = dynamicTheme,
+                            onCheckedChange = onDynamicThemeChange
+                        )
+                    },
+                    onClick = { onDynamicThemeChange(!dynamicTheme) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.DarkMode),
+                    title = { Text(stringResource(R.string.dark_theme)) },
+                    description = {
+                        Text(
+                            when (darkMode) {
+                                DarkMode.ON -> stringResource(R.string.dark_theme_on)
+                                DarkMode.OFF -> stringResource(R.string.dark_theme_off)
+                                DarkMode.AUTO -> stringResource(R.string.dark_theme_follow_system)
+                            }
+                        )
+                    },
+                    onClick = { showDarkModeDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Contrast),
+                    title = { Text(stringResource(R.string.pure_black)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = pureBlack,
+                            onCheckedChange = onPureBlackChange
+                        )
+                    },
+                    onClick = { onPureBlackChange(!pureBlack) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.BlurOn),
+                    title = { Text(stringResource(R.string.player_background_style)) },
+                    description = {
+                        Text(
+                            when (playerBackground) {
+                                PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.player_background_default)
+                                PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.player_background_gradient)
+                                PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                            }
+                        )
+                    },
+                    onClick = { showPlayerBackgroundDialog = true }
+                )
+            )
+        )
+
+        // Interface Section
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.grp_interface),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Palette),
+                    title = { Text(stringResource(R.string.new_interface)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = newInterfaceStyle,
+                            onCheckedChange = onNewInterfaceStyleChange
+                        )
+                    },
+                    onClick = { onNewInterfaceStyleChange(!newInterfaceStyle) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.PlaylistPlay),
+                    title = { Text(stringResource(R.string.show_liked_and_downloaded_playlist)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = showLikedAndDownloadedPlaylist,
+                            onCheckedChange = onShowLikedAndDownloadedPlaylistChange
+                        )
+                    },
+                    onClick = { onShowLikedAndDownloadedPlaylistChange(!showLikedAndDownloadedPlaylist) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.PlaylistAdd),
+                    title = { Text(stringResource(R.string.swipe2Queue)) },
+                    description = { Text(stringResource(R.string.swipe2Queue_description)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = swipe2Queue,
+                            onCheckedChange = onSwipe2QueueChange
+                        )
+                    },
+                    onClick = { onSwipe2QueueChange(!swipe2Queue) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.MoreHoriz),
+                    title = { Text(stringResource(R.string.slim_navbar_title)) },
+                    description = { Text(stringResource(R.string.slim_navbar_description)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = slimNav,
+                            onCheckedChange = onSlimNavChange
+                        )
+                    },
+                    onClick = { onSlimNavChange(!slimNav) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.FolderCopy),
+                    title = { Text(stringResource(R.string.flat_subfolders_title)) },
+                    description = { Text(stringResource(R.string.flat_subfolders_description)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = flatSubfolders,
+                            onCheckedChange = onFlatSubfoldersChange
+                        )
+                    },
+                    onClick = { onFlatSubfoldersChange(!flatSubfolders) }
+                )
+            )
+        )
+
+        // Navigation Tabs Section
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.tab_arrangement),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Tab),
+                    title = { Text(stringResource(R.string.default_open_tab)) },
+                    description = {
+                        Text(
+                            if (newInterfaceStyle) {
+                                when (defaultOpenTabNew) {
+                                    NavigationTabNew.HOME -> stringResource(R.string.home)
+                                    NavigationTabNew.LIBRARY -> stringResource(R.string.library)
+                                }
+                            } else {
+                                when (defaultOpenTab) {
+                                    NavigationTab.HOME -> stringResource(R.string.home)
+                                    NavigationTab.SONG -> stringResource(R.string.songs)
+                                    NavigationTab.FOLDERS -> stringResource(R.string.folders)
+                                    NavigationTab.ARTIST -> stringResource(R.string.artists)
+                                    NavigationTab.ALBUM -> stringResource(R.string.albums)
+                                    NavigationTab.PLAYLIST -> stringResource(R.string.playlists)
+                                    else -> ""
+                                }
+                            }
+                        )
+                    },
+                    onClick = { showDefaultOpenTabDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Reorder),
+                    title = { Text(stringResource(R.string.tab_arrangement)) },
+                    onClick = { showTabArrangement = true }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
     }
 
     TopAppBar(
-        title = { Text(stringResource(R.string.appearance)) },
+        title = { },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
@@ -399,12 +488,10 @@ enum class PlayerBackgroundStyle {
     DEFAULT, GRADIENT, BLUR
 }
 
-/**
- * NULL is used to separate enabled and disabled tabs. It should be ignored in regular use
- */
 enum class NavigationTab {
     HOME, SONG, FOLDERS, ARTIST, ALBUM, PLAYLIST, NULL
 }
+
 enum class NavigationTabNew {
     HOME, LIBRARY
 }

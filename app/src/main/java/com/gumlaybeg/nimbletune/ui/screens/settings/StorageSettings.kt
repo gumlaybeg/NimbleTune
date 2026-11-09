@@ -1,16 +1,23 @@
 package com.gumlaybeg.nimbletune.ui.screens.settings
 
-import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ClearAll
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,12 +27,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
@@ -39,10 +50,10 @@ import com.gumlaybeg.nimbletune.constants.MaxImageCacheSizeKey
 import com.gumlaybeg.nimbletune.constants.SongSortType
 import com.gumlaybeg.nimbletune.extensions.tryOrNull
 import com.gumlaybeg.nimbletune.playback.ExoDownloadService
-import com.gumlaybeg.nimbletune.ui.component.IconButton
-import com.gumlaybeg.nimbletune.ui.component.ListPreference
-import com.gumlaybeg.nimbletune.ui.component.PreferenceEntry
-import com.gumlaybeg.nimbletune.ui.component.PreferenceGroupTitle
+import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
+import com.gumlaybeg.nimbletune.ui.component.EnumDialog
+import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.ui.utils.formatFileSize
 import com.gumlaybeg.nimbletune.utils.rememberPreference
@@ -51,7 +62,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-@SuppressLint("PrivateResource")
 @OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StorageSettings(
@@ -62,15 +72,10 @@ fun StorageSettings(
     val imageDiskCache = context.imageLoader.diskCache ?: return
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
     val database = LocalDatabase.current
-
     val coroutineScope = rememberCoroutineScope()
 
-    var imageCacheSize by remember {
-        mutableLongStateOf(imageDiskCache.size)
-    }
-    var downloadCacheSize by remember {
-        mutableLongStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0)
-    }
+    var imageCacheSize by remember { mutableLongStateOf(imageDiskCache.size) }
+    var downloadCacheSize by remember { mutableLongStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0) }
 
     LaunchedEffect(imageDiskCache) {
         while (isActive) {
@@ -90,7 +95,6 @@ fun StorageSettings(
         defaultValue = 512
     )
 
-    // clear caches when turning off
     LaunchedEffect(maxImageCacheSize) {
         if (maxImageCacheSize == 0) {
             coroutineScope.launch(Dispatchers.IO) {
@@ -99,24 +103,15 @@ fun StorageSettings(
         }
     }
 
-    Column(
-        Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-            .verticalScroll(rememberScrollState())
-    ) {
-        PreferenceGroupTitle(
-            title = stringResource(R.string.downloaded_songs)
-        )
+    var showClearDownloadsDialog by rememberSaveable { mutableStateOf(false) }
+    var showClearImageCacheDialog by rememberSaveable { mutableStateOf(false) }
+    var showMaxImageCacheDialog by rememberSaveable { mutableStateOf(false) }
 
-        Text(
-            text = stringResource(R.string.size_used, formatFileSize(downloadCacheSize)),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.clear_all_downloads)) },
-            onClick = {
+    if (showClearDownloadsDialog) {
+        ActionPromptDialog(
+            title = stringResource(R.string.clear_all_downloads),
+            onDismiss = { showClearDownloadsDialog = false },
+            onConfirm = {
                 coroutineScope.launch(Dispatchers.IO) {
                     downloadCache.keys.forEach { key ->
                         downloadCache.removeResource(key)
@@ -132,56 +127,124 @@ fun StorageSettings(
                         }
                     }
                 }
+                showClearDownloadsDialog = false
             },
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.image_cache)
-        )
-
-        if (maxImageCacheSize > 0) {
-            LinearProgressIndicator(
-                progress = { (imageCacheSize.toFloat() / imageDiskCache.maxSize).coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-
-            Text(
-                text = stringResource(
-                    R.string.size_used,
-                    "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-        }
-
-        ListPreference(
-            title = { Text(stringResource(R.string.max_cache_size)) },
-            selectedValue = maxImageCacheSize,
-            values = listOf(0, 128, 256, 512, 1024, 2048, 4096, 8192),
-            valueText = {
-                when (it) {
-                    0 -> stringResource(androidx.compose.ui.R.string.state_off)
-                    else -> formatFileSize(it * 1024 * 1024L)
-                }
-            },
-            onValueSelected = onMaxImageCacheSizeChange
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.clear_image_cache)) },
-            onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    imageDiskCache.clear()
-                }
-            },
+            onCancel = { showClearDownloadsDialog = false },
+            content = {
+                Text(text = stringResource(R.string.clear_downloads_dialog))
+            }
         )
     }
 
+    if (showClearImageCacheDialog) {
+        ActionPromptDialog(
+            title = stringResource(R.string.clear_image_cache),
+            onDismiss = { showClearImageCacheDialog = false },
+            onConfirm = {
+                coroutineScope.launch(Dispatchers.IO) {
+                    imageDiskCache.clear()
+                }
+                showClearImageCacheDialog = false
+            },
+            onCancel = { showClearImageCacheDialog = false },
+            content = {
+                Text(text = stringResource(R.string.clear_image_cache))
+            }
+        )
+    }
+
+    if (showMaxImageCacheDialog) {
+        val cacheOptions = listOf(0, 128, 256, 512, 1024, 2048, 4096, 8192)
+        EnumDialog(
+            onDismiss = { showMaxImageCacheDialog = false },
+            onSelect = {
+                onMaxImageCacheSizeChange(it)
+                showMaxImageCacheDialog = false
+            },
+            title = stringResource(R.string.max_cache_size),
+            current = maxImageCacheSize,
+            values = cacheOptions,
+            valueText = {
+                when (it) {
+                    0 -> stringResource(R.string.state_off)
+                    else -> formatFileSize(it * 1024 * 1024L)
+                }
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.storage),
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
+        )
+
+        // Download Storage Group
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.downloaded_songs),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Storage),
+                    title = { Text(stringResource(R.string.downloaded_songs)) },
+                    description = {
+                        Text(stringResource(R.string.size_used, formatFileSize(downloadCacheSize)))
+                    }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Delete),
+                    title = { Text(stringResource(R.string.clear_all_downloads)) },
+                    onClick = { showClearDownloadsDialog = true }
+                )
+            )
+        )
+
+        // Image Cache Group
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.image_cache),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Image),
+                    title = { Text(stringResource(R.string.image_cache)) },
+                    description = {
+                        Column {
+                            if (maxImageCacheSize > 0) {
+                                LinearProgressIndicator(
+                                    progress = { (imageCacheSize.toFloat() / imageDiskCache.maxSize).coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                )
+                                Text(
+                                    text = "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
+                                )
+                            } else {
+                                Text(stringResource(R.string.state_off))
+                            }
+                        }
+                    },
+                    onClick = { showMaxImageCacheDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.ClearAll),
+                    title = { Text(stringResource(R.string.clear_image_cache)) },
+                    onClick = { showClearImageCacheDialog = true }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+    }
+
     TopAppBar(
-        title = { Text(stringResource(R.string.storage)) },
+        title = { },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

@@ -1,6 +1,10 @@
 package com.gumlaybeg.nimbletune.ui.screens.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +22,8 @@ import androidx.compose.material.icons.rounded.NoCell
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -25,10 +31,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.gumlaybeg.nimbletune.LocalPlayerAwareWindowInsets
 import com.gumlaybeg.nimbletune.R
@@ -44,11 +54,10 @@ import com.gumlaybeg.nimbletune.constants.SkipSilenceKey
 import com.gumlaybeg.nimbletune.constants.StopMusicOnTaskClearKey
 import com.gumlaybeg.nimbletune.constants.minPlaybackDurKey
 import com.gumlaybeg.nimbletune.ui.component.CounterDialog
-import com.gumlaybeg.nimbletune.ui.component.EnumListPreference
-import com.gumlaybeg.nimbletune.ui.component.IconButton
-import com.gumlaybeg.nimbletune.ui.component.PreferenceEntry
-import com.gumlaybeg.nimbletune.ui.component.PreferenceGroupTitle
-import com.gumlaybeg.nimbletune.ui.component.SwitchPreference
+import com.gumlaybeg.nimbletune.ui.component.EnumDialog
+import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
+import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
 import com.gumlaybeg.nimbletune.utils.rememberPreference
@@ -59,28 +68,38 @@ fun PlayerSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
-        key = AudioQualityKey,
-        defaultValue = AudioQuality.AUTO
-    )
+    val (audioQuality, onAudioQualityChange) = rememberEnumPreference(key = AudioQualityKey, defaultValue = AudioQuality.AUTO)
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(key = PersistentQueueKey, defaultValue = true)
     val (skipSilence, onSkipSilenceChange) = rememberPreference(key = SkipSilenceKey, defaultValue = false)
     val (skipOnErrorKey, onSkipOnErrorChange) = rememberPreference(key = SkipOnErrorKey, defaultValue = true)
-    val (audioNormalization, onAudioNormalizationChange) = rememberPreference(
-        key = AudioNormalizationKey,
-        defaultValue = true
-    )
+    val (audioNormalization, onAudioNormalizationChange) = rememberPreference(key = AudioNormalizationKey, defaultValue = true)
     val (autoLoadMore, onAutoLoadMoreChange) = rememberPreference(AutoLoadMoreKey, defaultValue = true)
-    val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(
-        key = StopMusicOnTaskClearKey,
-        defaultValue = false
-    )
+    val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(key = StopMusicOnTaskClearKey, defaultValue = false)
     val (minPlaybackDur, onMinPlaybackDurChange) = rememberPreference(minPlaybackDurKey, defaultValue = 30)
     val (audioOffload, onAudioOffloadChange) = rememberPreference(key = AudioOffload, defaultValue = false)
     val (keepAlive, onKeepAliveChange) = rememberPreference(key = KeepAliveKey, defaultValue = false)
 
-    var showMinPlaybackDur by remember {
-        mutableStateOf(false)
+    var showAudioQualityDialog by rememberSaveable { mutableStateOf(false) }
+    var showMinPlaybackDur by rememberSaveable { mutableStateOf(false) }
+
+    if (showAudioQualityDialog) {
+        EnumDialog(
+            onDismiss = { showAudioQualityDialog = false },
+            onSelect = {
+                onAudioQualityChange(it)
+                showAudioQualityDialog = false
+            },
+            title = stringResource(R.string.audio_quality),
+            current = audioQuality,
+            values = AudioQuality.entries.toList(),
+            valueText = {
+                when (it) {
+                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
+                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
+                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
+                }
+            }
+        )
     }
 
     if (showMinPlaybackDur) {
@@ -96,109 +115,168 @@ fun PlayerSettings(
                 showMinPlaybackDur = false
                 onMinPlaybackDurChange(it)
             },
-            onCancel = {
-                showMinPlaybackDur = false
-            }
+            onCancel = { showMinPlaybackDur = false }
         )
     }
 
     Column(
-        Modifier
+        modifier = Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
             .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        PreferenceGroupTitle(
-            title = stringResource(R.string.grp_general)
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.persistent_queue)) },
-            description = stringResource(R.string.persistent_queue_desc_ot),
-            icon = { Icon(Icons.AutoMirrored.Rounded.QueueMusic, null) },
-            checked = persistentQueue,
-            onCheckedChange = onPersistentQueueChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.auto_load_more)) },
-            description = stringResource(R.string.auto_load_more_desc),
-            icon = { Icon(Icons.Rounded.Autorenew, null) },
-            checked = autoLoadMore,
-            onCheckedChange = onAutoLoadMoreChange
-        )
-        // lyrics settings
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.lyrics_settings_title)) },
-            icon = { Icon(Icons.Rounded.Lyrics, null) },
-            onClick = { navController.navigate("settings/player/lyrics") }
-        )
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.min_playback_duration)) },
-            icon = { Icon(Icons.Rounded.Sync, null) },
-            onClick = { showMinPlaybackDur = true }
+        Text(
+            text = stringResource(R.string.player_and_audio),
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.grp_audio)
-        )
-        EnumListPreference(
-            title = { Text(stringResource(R.string.audio_quality)) },
-            icon = { Icon(Icons.Rounded.GraphicEq, null) },
-            selectedValue = audioQuality,
-            onValueSelected = onAudioQualityChange,
-            valueText = {
-                when (it) {
-                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
-                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
-                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                }
-            }
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.audio_normalization)) },
-            icon = { Icon(Icons.AutoMirrored.Rounded.VolumeUp, null) },
-            checked = audioNormalization,
-            onCheckedChange = onAudioNormalizationChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.skip_silence)) },
-            icon = { Icon(painterResource(R.drawable.skip_next), null) },
-            checked = skipSilence,
-            onCheckedChange = onSkipSilenceChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.auto_skip_next_on_error)) },
-            description = stringResource(R.string.auto_skip_next_on_error_desc),
-            icon = { Icon(Icons.Rounded.FastForward, null) },
-            checked = skipOnErrorKey,
-            onCheckedChange = onSkipOnErrorChange
+        // Audio Settings
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.grp_audio),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.GraphicEq),
+                    title = { Text(stringResource(R.string.audio_quality)) },
+                    description = {
+                        Text(
+                            when (audioQuality) {
+                                AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
+                                AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
+                                AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
+                            }
+                        )
+                    },
+                    onClick = { showAudioQualityDialog = true }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.VolumeUp),
+                    title = { Text(stringResource(R.string.audio_normalization)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = audioNormalization,
+                            onCheckedChange = onAudioNormalizationChange
+                        )
+                    },
+                    onClick = { onAudioNormalizationChange(!audioNormalization) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.skip_next),
+                    title = { Text(stringResource(R.string.skip_silence)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = skipSilence,
+                            onCheckedChange = onSkipSilenceChange
+                        )
+                    },
+                    onClick = { onSkipSilenceChange(!skipSilence) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.FastForward),
+                    title = { Text(stringResource(R.string.auto_skip_next_on_error)) },
+                    description = { Text(stringResource(R.string.auto_skip_next_on_error_desc)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = skipOnErrorKey,
+                            onCheckedChange = onSkipOnErrorChange
+                        )
+                    },
+                    onClick = { onSkipOnErrorChange(!skipOnErrorKey) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Bolt),
+                    title = { Text(stringResource(R.string.audio_offload)) },
+                    description = { Text(stringResource(R.string.audio_offload_description)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = audioOffload,
+                            onCheckedChange = onAudioOffloadChange
+                        )
+                    },
+                    onClick = { onAudioOffloadChange(!audioOffload) }
+                )
+            )
         )
 
-        PreferenceGroupTitle(
-            title = stringResource(R.string.prefs_advanced)
+        // Queue & Playback
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.grp_general),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.QueueMusic),
+                    title = { Text(stringResource(R.string.persistent_queue)) },
+                    description = { Text(stringResource(R.string.persistent_queue_desc_ot)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = persistentQueue,
+                            onCheckedChange = onPersistentQueueChange
+                        )
+                    },
+                    onClick = { onPersistentQueueChange(!persistentQueue) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Autorenew),
+                    title = { Text(stringResource(R.string.auto_load_more)) },
+                    description = { Text(stringResource(R.string.auto_load_more_desc)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = autoLoadMore,
+                            onCheckedChange = onAutoLoadMoreChange
+                        )
+                    },
+                    onClick = { onAutoLoadMoreChange(!autoLoadMore) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Lyrics),
+                    title = { Text(stringResource(R.string.lyrics_settings_title)) },
+                    onClick = { navController.navigate("settings/player/lyrics") }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.Sync),
+                    title = { Text(stringResource(R.string.min_playback_duration)) },
+                    description = { Text("$minPlaybackDur%") },
+                    onClick = { showMinPlaybackDur = true }
+                )
+            )
         )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
-            icon = { Icon(Icons.Rounded.ClearAll, null) },
-            checked = stopMusicOnTaskClear,
-            onCheckedChange = onStopMusicOnTaskClearChange
+
+        // Background Service & System
+        ExpressiveSettingGroup(
+            title = stringResource(R.string.prefs_advanced),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.ClearAll),
+                    title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = stopMusicOnTaskClear,
+                            onCheckedChange = onStopMusicOnTaskClearChange
+                        )
+                    },
+                    onClick = { onStopMusicOnTaskClearChange(!stopMusicOnTaskClear) }
+                ),
+                Material3SettingsItem(
+                    icon = rememberVectorPainter(Icons.Rounded.NoCell),
+                    title = { Text(stringResource(R.string.keep_alive_title)) },
+                    description = { Text(stringResource(R.string.keep_alive_description)) },
+                    trailingContent = {
+                        ModernSwitch(
+                            checked = keepAlive,
+                            onCheckedChange = onKeepAliveChange
+                        )
+                    },
+                    onClick = { onKeepAliveChange(!keepAlive) }
+                )
+            )
         )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.audio_offload)) },
-            description = stringResource(R.string.audio_offload_description),
-            icon = { Icon(Icons.Rounded.Bolt, null) },
-            checked = audioOffload,
-            onCheckedChange = onAudioOffloadChange
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.keep_alive_title)) },
-            description = stringResource(R.string.keep_alive_description),
-            icon = { Icon(Icons.Rounded.NoCell, null) },
-            checked = keepAlive,
-            onCheckedChange = onKeepAliveChange
-        )
+
+        Spacer(modifier = Modifier.height(48.dp))
     }
 
     TopAppBar(
-        title = { Text(stringResource(R.string.player_and_audio)) },
+        title = { },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
