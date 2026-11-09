@@ -14,7 +14,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -180,7 +179,6 @@ enum class CoverResolution(val size: Int) {
 }
 
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
-val MinimalPlayerDesignKey = booleanPreferencesKey("minimalPlayerDesign")
 val ShowPlayerThumbnailShadowKey = booleanPreferencesKey("showPlayerThumbnailShadow")
 val PlayerThumbnailShadowElevationKey = floatPreferencesKey("playerThumbnailShadowElevation")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
@@ -376,7 +374,6 @@ fun BottomSheetPlayer(
     val shuffleModeEnabled by isShuffleEnabled.collectAsState()
     val playerVolume by playerConnection.service.playerVolume.collectAsState()
 
-    val menuState = LocalMenuState.current
     var playerState by remember { mutableStateOf(PlayerInternalState.COVER) }
     var controlsVisible by remember { mutableStateOf(true) }
 
@@ -394,7 +391,6 @@ fun BottomSheetPlayer(
     var duration by remember { mutableLongStateOf(0L) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
 
-    val minimalPlayerDesign by rememberPreference(MinimalPlayerDesignKey, defaultValue = false)
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.DEFAULT)
     val thumbnailCornerRadius = ThumbnailCornerRadius.value
     val coverResolution by rememberEnumPreference(CoverResolutionKey, defaultValue = CoverResolution.RES_1080)
@@ -568,7 +564,6 @@ fun BottomSheetPlayer(
                 showPlayerThumbnailShadow = showPlayerThumbnailShadow,
                 playerThumbnailShadowElevation = playerThumbnailShadowElevation,
                 hidePlayerThumbnail = hidePlayerThumbnail,
-                minimalPlayerDesign = minimalPlayerDesign,
                 adaptivePrimary = adaptivePrimary,
                 adaptiveSecondary = adaptiveSecondary,
                 adaptiveSurface = adaptiveSurface,
@@ -608,7 +603,6 @@ fun BottomSheetPlayer(
                 showPlayerThumbnailShadow = showPlayerThumbnailShadow,
                 playerThumbnailShadowElevation = playerThumbnailShadowElevation,
                 hidePlayerThumbnail = hidePlayerThumbnail,
-                minimalPlayerDesign = minimalPlayerDesign,
                 adaptivePrimary = adaptivePrimary,
                 adaptiveSecondary = adaptiveSecondary,
                 adaptiveSurface = adaptiveSurface,
@@ -646,7 +640,6 @@ private fun PlayerV2Landscape(
     showPlayerThumbnailShadow: Boolean,
     playerThumbnailShadowElevation: Float,
     hidePlayerThumbnail: Boolean,
-    minimalPlayerDesign: Boolean,
     adaptivePrimary: Color,
     adaptiveSecondary: Color,
     adaptiveSurface: Color,
@@ -687,7 +680,7 @@ private fun PlayerV2Landscape(
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxHeight(if (minimalPlayerDesign) 0.92f else 0.88f)
+                            .fillMaxHeight(0.88f)
                             .aspectRatio(1f)
                             .customSoftShadow(
                                 elevation = playerThumbnailShadowElevation.dp,
@@ -736,7 +729,7 @@ private fun PlayerV2Landscape(
                     modifier = Modifier
                         .weight(1.05f)
                         .fillMaxHeight()
-                        .padding(vertical = if (minimalPlayerDesign) 2.dp else 4.dp)
+                        .padding(vertical = 4.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -748,7 +741,7 @@ private fun PlayerV2Landscape(
                     ) {
                         IconButton(
                             onClick = { state.collapseSoft() },
-                            modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 36.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.ExpandMore,
@@ -763,13 +756,13 @@ private fun PlayerV2Landscape(
                         ) {
                             IconButton(
                                 onClick = playerConnection::toggleLike,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 36.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                     contentDescription = null,
                                     tint = if (isLiked) MaterialTheme.colorScheme.error else adaptivePrimary,
-                                    modifier = Modifier.size(if (minimalPlayerDesign) 20.dp else 22.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
 
@@ -784,13 +777,13 @@ private fun PlayerV2Landscape(
                                         )
                                     }
                                 },
-                                modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 36.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.MoreHoriz,
                                     contentDescription = null,
                                     tint = adaptivePrimary,
-                                    modifier = Modifier.size(if (minimalPlayerDesign) 20.dp else 22.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
@@ -802,7 +795,7 @@ private fun PlayerV2Landscape(
                     ) {
                         Text(
                             text = mediaMetadata?.title ?: stringResource(R.string.unknown),
-                            style = if (minimalPlayerDesign) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = adaptivePrimary,
                             maxLines = 1,
@@ -817,7 +810,7 @@ private fun PlayerV2Landscape(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = mediaMetadata?.artists?.firstOrNull()?.name ?: stringResource(R.string.unknown),
-                            style = if (minimalPlayerDesign) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = adaptiveSecondary,
                             maxLines = 1,
@@ -871,26 +864,26 @@ private fun PlayerV2Landscape(
                     ) {
                         IconButton(
                             onClick = { playerConnection.triggerShuffle() },
-                            modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 36.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Shuffle,
                                 contentDescription = stringResource(R.string.shuffle),
                                 tint = if (shuffleModeEnabled) adaptivePrimary else adaptiveSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier.size(if (minimalPlayerDesign) 18.dp else 20.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
                         IconButton(
                             onClick = { if (canSkipPrevious) playerConnection.player.seekToPrevious() },
                             enabled = canSkipPrevious,
-                            modifier = Modifier.size(if (minimalPlayerDesign) 38.dp else 44.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipPrevious,
                                 contentDescription = null,
                                 tint = if (canSkipPrevious) adaptivePrimary else adaptivePrimary.copy(alpha = 0.35f),
-                                modifier = Modifier.size(if (minimalPlayerDesign) 24.dp else 28.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
 
@@ -905,13 +898,13 @@ private fun PlayerV2Landscape(
                             },
                             shape = CircleShape,
                             color = adaptivePrimary.copy(alpha = 0.15f),
-                            modifier = Modifier.size(if (minimalPlayerDesign) 50.dp else 56.dp)
+                            modifier = Modifier.size(56.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                 Icon(
                                     imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                     contentDescription = null,
-                                    modifier = Modifier.size(if (minimalPlayerDesign) 28.dp else 32.dp),
+                                    modifier = Modifier.size(32.dp),
                                     tint = adaptivePrimary
                                 )
                             }
@@ -920,19 +913,19 @@ private fun PlayerV2Landscape(
                         IconButton(
                             onClick = { if (canSkipNext) playerConnection.player.seekToNext() },
                             enabled = canSkipNext,
-                            modifier = Modifier.size(if (minimalPlayerDesign) 38.dp else 44.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipNext,
                                 contentDescription = null,
                                 tint = if (canSkipNext) adaptivePrimary else adaptivePrimary.copy(alpha = 0.35f),
-                                modifier = Modifier.size(if (minimalPlayerDesign) 24.dp else 28.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
 
                         IconButton(
                             onClick = { playerConnection.player.toggleRepeatMode() },
-                            modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 36.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 imageVector = when (repeatMode) {
@@ -941,77 +934,76 @@ private fun PlayerV2Landscape(
                                 },
                                 contentDescription = null,
                                 tint = if (repeatMode != REPEAT_MODE_OFF) adaptivePrimary else adaptiveSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier.size(if (minimalPlayerDesign) 18.dp else 20.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
 
-                    if (!minimalPlayerDesign) {
-                        var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
-                        val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
+                    // Interactive Volume Slider Bar
+                    var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
+                    val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = if (isMuted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeMute,
-                                contentDescription = null,
-                                tint = adaptiveSecondary,
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable {
-                                        if (isMuted) {
-                                            playerConnection.service.playerVolume.value = previousVolume
-                                            isMuted = false
-                                        } else {
-                                            previousVolume = playerVolume
-                                            playerConnection.service.playerVolume.value = 0f
-                                            isMuted = true
-                                        }
-                                    }
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Slider(
-                                value = currentEffectiveVolume.coerceIn(0f, 1f),
-                                onValueChange = { newValue ->
-                                    volumeSliderPosition = newValue
-                                    playerConnection.service.playerVolume.value = newValue
-                                    if (newValue > 0f) isMuted = false
-                                },
-                                onValueChangeFinished = { volumeSliderPosition = null },
-                                valueRange = 0f..1f,
-                                thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                                track = { sliderState ->
-                                    PlayerSliderTrack(
-                                        sliderState = sliderState,
-                                        trackHeight = 4.dp,
-                                        colors = PlayerSliderColors.getSliderColors(
-                                            activeColor = adaptivePrimary.copy(alpha = 0.8f),
-                                            playerBackground = playerBackground,
-                                            useDarkTheme = isSystemInDarkTheme()
-                                        )
-                                    )
-                                },
-                                modifier = Modifier.weight(1f).height(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
-                                contentDescription = null,
-                                tint = adaptiveSecondary,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable {
-                                        playerConnection.service.playerVolume.value = 1f
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeMute,
+                            contentDescription = null,
+                            tint = adaptiveSecondary,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clickable {
+                                    if (isMuted) {
+                                        playerConnection.service.playerVolume.value = previousVolume
                                         isMuted = false
+                                    } else {
+                                        previousVolume = playerVolume
+                                        playerConnection.service.playerVolume.value = 0f
+                                        isMuted = true
                                     }
-                            )
-                        }
+                                }
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Slider(
+                            value = currentEffectiveVolume.coerceIn(0f, 1f),
+                            onValueChange = { newValue ->
+                                volumeSliderPosition = newValue
+                                playerConnection.service.playerVolume.value = newValue
+                                if (newValue > 0f) isMuted = false
+                            },
+                            onValueChangeFinished = { volumeSliderPosition = null },
+                            valueRange = 0f..1f,
+                            thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+                            track = { sliderState ->
+                                PlayerSliderTrack(
+                                    sliderState = sliderState,
+                                    trackHeight = 4.dp,
+                                    colors = PlayerSliderColors.getSliderColors(
+                                        activeColor = adaptivePrimary.copy(alpha = 0.8f),
+                                        playerBackground = playerBackground,
+                                        useDarkTheme = isSystemInDarkTheme()
+                                    )
+                                )
+                            },
+                            modifier = Modifier.weight(1f).height(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
+                            contentDescription = null,
+                            tint = adaptiveSecondary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable {
+                                    playerConnection.service.playerVolume.value = 1f
+                                    isMuted = false
+                                }
+                        )
                     }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = if (minimalPlayerDesign) 2.dp else 4.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1021,7 +1013,7 @@ private fun PlayerV2Landscape(
                                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                                 contentDescription = stringResource(R.string.queues_title),
                                 tint = if (isQueueActive) adaptivePrimary else adaptiveSecondary,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 22.dp else 24.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
@@ -1031,7 +1023,7 @@ private fun PlayerV2Landscape(
                                 imageVector = Icons.Rounded.Lyrics,
                                 contentDescription = stringResource(R.string.lyrics_settings_title),
                                 tint = if (isLyricsActive) adaptivePrimary else adaptiveSecondary,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 22.dp else 24.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
@@ -1039,7 +1031,7 @@ private fun PlayerV2Landscape(
             } else {
                 Column(
                     modifier = Modifier
-                        .weight(if (minimalPlayerDesign) 0.8f else 0.85f)
+                        .weight(0.85f)
                         .fillMaxHeight()
                         .padding(vertical = 4.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
@@ -1085,7 +1077,7 @@ private fun PlayerV2Landscape(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(if (minimalPlayerDesign) 60.dp else 70.dp)
+                                .size(70.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(adaptiveSurface)
                                 .clickable { onPlayerStateChange(PlayerInternalState.COVER) }
@@ -1114,8 +1106,7 @@ private fun PlayerV2Landscape(
                                 fontWeight = FontWeight.Bold,
                                 color = adaptivePrimary,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee()
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -1227,7 +1218,7 @@ private fun PlayerV2Landscape(
 
                 Box(
                     modifier = Modifier
-                        .weight(if (minimalPlayerDesign) 1.2f else 1.15f)
+                        .weight(1.15f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(20.dp))
                         .background(adaptiveSurface.copy(alpha = 0.12f))
@@ -1280,7 +1271,6 @@ private fun PlayerV2Portrait(
     showPlayerThumbnailShadow: Boolean,
     playerThumbnailShadowElevation: Float,
     hidePlayerThumbnail: Boolean,
-    minimalPlayerDesign: Boolean,
     adaptivePrimary: Color,
     adaptiveSecondary: Color,
     adaptiveSurface: Color,
@@ -1677,7 +1667,7 @@ private fun PlayerV2Portrait(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(if (minimalPlayerDesign) 10.dp else 16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1692,18 +1682,18 @@ private fun PlayerV2Portrait(
                             },
                             enabled = canSkipPrevious,
                             modifier = Modifier
-                                .size(if (minimalPlayerDesign) 48.dp else 64.dp)
+                                .size(64.dp)
                                 .alpha(if (!canSkipPrevious) 0.4f else 1f)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipPrevious,
                                 contentDescription = null,
                                 tint = adaptivePrimary,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 48.dp)
+                                modifier = Modifier.size(48.dp)
                             )
                         }
 
-                        Surface(
+                        IconButton(
                             onClick = {
                                 if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
@@ -1712,18 +1702,14 @@ private fun PlayerV2Portrait(
                                     playerConnection.player.togglePlayPause()
                                 }
                             },
-                            shape = CircleShape,
-                            color = adaptivePrimary.copy(alpha = 0.14f),
-                            modifier = Modifier.size(if (minimalPlayerDesign) 68.dp else 84.dp)
+                            modifier = Modifier.size(88.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(
-                                    imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(if (minimalPlayerDesign) 36.dp else 48.dp),
-                                    tint = adaptivePrimary
-                                )
-                            }
+                            Icon(
+                                imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = adaptivePrimary
+                            )
                         }
 
                         IconButton(
@@ -1734,102 +1720,101 @@ private fun PlayerV2Portrait(
                             },
                             enabled = canSkipNext,
                             modifier = Modifier
-                                .size(if (minimalPlayerDesign) 48.dp else 64.dp)
+                                .size(64.dp)
                                 .alpha(if (!canSkipNext) 0.4f else 1f)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipNext,
                                 contentDescription = null,
                                 tint = adaptivePrimary,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 32.dp else 48.dp)
+                                modifier = Modifier.size(48.dp)
                             )
                         }
                     }
 
-                    if (!minimalPlayerDesign) {
-                        Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                        var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
-                        val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
-                        val volumeInteractionSource = remember { MutableInteractionSource() }
-                        val isVolDragged by volumeInteractionSource.collectIsDraggedAsState()
-                        val isVolPressed by volumeInteractionSource.collectIsPressedAsState()
-                        val isVolActive = isVolDragged || isVolPressed
+                    // Standard Interactive Volume Slider Bar
+                    var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
+                    val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
+                    val volumeInteractionSource = remember { MutableInteractionSource() }
+                    val isVolDragged by volumeInteractionSource.collectIsDraggedAsState()
+                    val isVolPressed by volumeInteractionSource.collectIsPressedAsState()
+                    val isVolActive = isVolDragged || isVolPressed
 
-                        val volHeight by animateDpAsState(
-                            targetValue = if (isVolActive) 12.dp else 6.dp,
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                            label = "volHeight"
-                        )
+                    val volHeight by animateDpAsState(
+                        targetValue = if (isVolActive) 12.dp else 6.dp,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                        label = "volHeight"
+                    )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = if (isMuted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeMute,
-                                contentDescription = null,
-                                tint = adaptiveSecondary,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable {
-                                        if (isMuted) {
-                                            playerConnection.service.playerVolume.value = previousVolume
-                                            isMuted = false
-                                        } else {
-                                            previousVolume = playerVolume
-                                            playerConnection.service.playerVolume.value = 0f
-                                            isMuted = true
-                                        }
-                                    }
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            Slider(
-                                value = currentEffectiveVolume.coerceIn(0f, 1f),
-                                onValueChange = { newValue ->
-                                    volumeSliderPosition = newValue
-                                    playerConnection.service.playerVolume.value = newValue
-                                    if (newValue > 0f) isMuted = false
-                                },
-                                onValueChangeFinished = {
-                                    volumeSliderPosition = null
-                                },
-                                valueRange = 0f..1f,
-                                interactionSource = volumeInteractionSource,
-                                thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                                track = { sliderState ->
-                                    PlayerSliderTrack(
-                                        sliderState = sliderState,
-                                        trackHeight = volHeight,
-                                        colors = PlayerSliderColors.getSliderColors(
-                                            activeColor = adaptivePrimary.copy(alpha = 0.8f),
-                                            playerBackground = playerBackground,
-                                            useDarkTheme = isSystemInDarkTheme()
-                                        )
-                                    )
-                                },
-                                modifier = Modifier.weight(1f).height(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
-                                contentDescription = null,
-                                tint = adaptiveSecondary,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clickable {
-                                        playerConnection.service.playerVolume.value = 1f
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isMuted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeMute,
+                            contentDescription = null,
+                            tint = adaptiveSecondary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable {
+                                    if (isMuted) {
+                                        playerConnection.service.playerVolume.value = previousVolume
                                         isMuted = false
+                                    } else {
+                                        previousVolume = playerVolume
+                                        playerConnection.service.playerVolume.value = 0f
+                                        isMuted = true
                                     }
-                            )
-                        }
+                                }
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Slider(
+                            value = currentEffectiveVolume.coerceIn(0f, 1f),
+                            onValueChange = { newValue ->
+                                volumeSliderPosition = newValue
+                                playerConnection.service.playerVolume.value = newValue
+                                if (newValue > 0f) isMuted = false
+                            },
+                            onValueChangeFinished = {
+                                volumeSliderPosition = null
+                            },
+                            valueRange = 0f..1f,
+                            interactionSource = volumeInteractionSource,
+                            thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+                            track = { sliderState ->
+                                PlayerSliderTrack(
+                                    sliderState = sliderState,
+                                    trackHeight = volHeight,
+                                    colors = PlayerSliderColors.getSliderColors(
+                                        activeColor = adaptivePrimary.copy(alpha = 0.8f),
+                                        playerBackground = playerBackground,
+                                        useDarkTheme = isSystemInDarkTheme()
+                                    )
+                                )
+                            },
+                            modifier = Modifier.weight(1f).height(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
+                            contentDescription = null,
+                            tint = adaptiveSecondary,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable {
+                                    playerConnection.service.playerVolume.value = 1f
+                                    isMuted = false
+                                }
+                        )
                     }
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = if (minimalPlayerDesign) 12.dp else 20.dp),
+                            .padding(horizontal = 16.dp, vertical = 20.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1840,7 +1825,7 @@ private fun PlayerV2Portrait(
                                 imageVector = Icons.Rounded.Shuffle,
                                 contentDescription = stringResource(R.string.shuffle),
                                 tint = if (shuffleModeEnabled) adaptivePrimary else adaptiveSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier.size(if (minimalPlayerDesign) 22.dp else 26.dp)
+                                modifier = Modifier.size(26.dp)
                             )
                         }
 
@@ -1854,7 +1839,7 @@ private fun PlayerV2Portrait(
                                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                                 contentDescription = stringResource(R.string.queues_title),
                                 tint = if (isQueueActive) adaptivePrimary else adaptiveSecondary,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 24.dp else 28.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
 
@@ -1868,7 +1853,7 @@ private fun PlayerV2Portrait(
                                 imageVector = Icons.Rounded.Lyrics,
                                 contentDescription = stringResource(R.string.lyrics_settings_title),
                                 tint = if (isLyricsActive) adaptivePrimary else adaptiveSecondary,
-                                modifier = Modifier.size(if (minimalPlayerDesign) 24.dp else 28.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
 
@@ -1882,7 +1867,7 @@ private fun PlayerV2Portrait(
                                 },
                                 contentDescription = null,
                                 tint = if (repeatMode != REPEAT_MODE_OFF) adaptivePrimary else adaptiveSecondary.copy(alpha = 0.6f),
-                                modifier = Modifier.size(if (minimalPlayerDesign) 24.dp else 28.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
