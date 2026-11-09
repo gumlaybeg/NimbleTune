@@ -40,6 +40,20 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Deselect
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -266,13 +280,13 @@ class QueueViewModel @Inject constructor(
         playerConnection = connection
         viewModelScope.launch {
             combine(
-                connection.queueWindows,
-                connection.currentWindowIndex,
-                connection.isPlaying,
-                connection.repeatMode,
-                isShuffleEnabled,
-                connection.queueTitle,
-            ) { windows, windowIndex, isPlaying, repeatMode, shuffle, title ->
+                combine(connection.queueWindows, connection.currentWindowIndex, connection.isPlaying) { windows, windowIndex, isPlaying ->
+                    Triple(windows, windowIndex, isPlaying)
+                },
+                combine(connection.repeatMode, isShuffleEnabled, connection.queueTitle) { repeatMode, shuffle, title ->
+                    Triple(repeatMode, shuffle, title)
+                }
+            ) { (windows, windowIndex, isPlaying), (repeatMode, shuffle, title) ->
                 if (windows.isEmpty()) {
                     _state.value = QueueScreenState.Empty
                     return@combine
@@ -488,7 +502,6 @@ class QueueViewModel @Inject constructor(
                         )
                     )
                     isCreatePlaylistDialogOpen = false
-                    _events.emit(QueueEvent.Message(R.string.playlist_created))
                     refreshSuccessState()
                 }
             }
@@ -595,25 +608,25 @@ fun QueueHeader(
             }
             IconButton(onClick = { onAction(QueueAction.ToggleLock) }, enabled = !model.guest) {
                 Icon(
-                    painterResource(if (model.locked) R.drawable.lock else R.drawable.lock_open),
+                    imageVector = if (model.locked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
                     contentDescription = null
                 )
             }
             Box {
                 IconButton(onClick = { onAction(QueueAction.ToggleOverflow) }) {
-                    Icon(painterResource(R.drawable.more_vert), stringResource(R.string.more_vert))
+                    Icon(imageVector = Icons.Rounded.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(
                     expanded = model.overflowOpen,
                     onDismissRequest = { onAction(QueueAction.ToggleOverflow) }
                 ) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.select_all)) },
+                        text = { Text("Select all") },
                         onClick = {
                             onAction(QueueAction.ToggleOverflow)
                             onAction(QueueAction.SelectAll)
                         },
-                        leadingIcon = { Icon(painterResource(R.drawable.select_all), null) },
+                        leadingIcon = { Icon(imageVector = Icons.Rounded.SelectAll, null) },
                     )
                     model.currentId?.let { id ->
                         DropdownMenuItem(
@@ -622,14 +635,14 @@ fun QueueHeader(
                                 onAction(QueueAction.ToggleOverflow)
                                 onAction(QueueAction.Menu(id))
                             },
-                            leadingIcon = { Icon(painterResource(R.drawable.info), null) },
+                            leadingIcon = { Icon(imageVector = Icons.Rounded.Info, null) },
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.clear_queue), color = colors.error) },
+                        text = { Text(stringResource(R.string.delete), color = colors.error) },
                         enabled = !model.guest,
                         onClick = { onAction(QueueAction.Clear) },
-                        leadingIcon = { Icon(painterResource(R.drawable.delete), null, tint = colors.error) },
+                        leadingIcon = { Icon(imageVector = Icons.Rounded.Delete, null, tint = colors.error) },
                     )
                 }
             }
@@ -787,7 +800,7 @@ fun QueueCollapsedContentV4(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.queue_music),
+                    imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                     contentDescription = null,
                     modifier = Modifier.size(iconSize),
                     tint = textBackgroundColor,
@@ -831,7 +844,7 @@ fun QueueCollapsedContentV4(
                     )
                 } else {
                     Icon(
-                        painter = painterResource(id = R.drawable.bedtime),
+                        imageVector = Icons.Rounded.Bedtime,
                         contentDescription = null,
                         modifier = Modifier.size(iconSize),
                         tint = textBackgroundColor,
@@ -857,7 +870,7 @@ fun QueueCollapsedContentV4(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.lyrics),
+                    imageVector = Icons.Rounded.Lyrics,
                     contentDescription = null,
                     modifier = Modifier.size(iconSize),
                     tint = textBackgroundColor,
@@ -902,12 +915,12 @@ fun QueueScreen(
             when (screenState) {
                 QueueScreenState.Loading -> CircularProgressIndicator()
                 QueueScreenState.Empty -> {
-                    Icon(painterResource(R.drawable.queue_music), null, Modifier.size(48.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Rounded.QueueMusic, null, Modifier.size(48.dp))
                     Text(stringResource(R.string.queues_empty), style = MaterialTheme.typography.titleLarge)
                 }
                 is QueueScreenState.Error -> {
                     Text(stringResource(screenState.message))
-                    TextButton(onClick = { onAction(QueueAction.Retry) }) { Text(stringResource(R.string.retry)) }
+                    TextButton(onClick = { onAction(QueueAction.Retry) }) { Text(stringResource(android.R.string.ok)) }
                 }
                 is QueueScreenState.Success -> Unit
             }
@@ -1024,7 +1037,7 @@ fun QueueScreen(
                                                     Alignment.CenterEnd
                                                 },
                                             ) {
-                                                Icon(painterResource(R.drawable.delete), null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                                Icon(imageVector = Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.onErrorContainer)
                                             }
                                         }
                                     },
@@ -1065,9 +1078,9 @@ private fun QueueSongRow(
     val click = remember(entry.id, onAction) { { onAction(QueueAction.Play(entry.id)) } }
     val select = remember(entry.id, onAction) { { onAction(QueueAction.Select(entry.id)) } }
     val menu = remember(entry.id, onAction) { { onAction(QueueAction.Menu(entry.id)) } }
-    val moveUp = stringResource(R.string.reorder)
-    val moveDown = stringResource(R.string.reorder)
-    val reorderDescription = stringResource(R.string.reorder)
+    val moveUp = "Move up"
+    val moveDown = "Move down"
+    val reorderDescription = "Reorder"
 
     val accessibility = remember(locked, previousId, nextId, entry.id, onAction) {
         buildList {
@@ -1110,7 +1123,7 @@ private fun QueueSongRow(
                     modifier = handle.size(40.dp).semantics { contentDescription = reorderDescription },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(painterResource(R.drawable.drag_handle), null, Modifier.size(24.dp))
+                    Icon(imageVector = Icons.Rounded.DragHandle, null, Modifier.size(24.dp))
                 }
             }
 
@@ -1123,7 +1136,7 @@ private fun QueueSongRow(
             ) {
                 if (entry.current) {
                     Text(
-                        stringResource(if (playing) R.string.playback_state_playing else R.string.playback_state_paused),
+                        if (playing) "Playing" else "Paused",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.primary
@@ -1151,14 +1164,14 @@ private fun QueueSongRow(
                 if (entry.current) {
                     IconButton(onClick = { onAction(QueueAction.ToggleLike) }) {
                         Icon(
-                            painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
+                            painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
                             contentDescription = null,
                             tint = if (liked) colors.error else colors.onSurface
                         )
                     }
                 }
                 IconButton(onClick = menu) {
-                    Icon(painterResource(R.drawable.more_vert), null)
+                    Icon(imageVector = Icons.Rounded.MoreVert, null)
                 }
             }
         }
@@ -1201,23 +1214,23 @@ private fun QueueSelectionToolbar(model: QueueUiModel, onAction: (QueueAction) -
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { onAction(QueueAction.SelectAll) }) {
-                    Icon(painterResource(R.drawable.select_all), null)
+                    Icon(imageVector = Icons.Rounded.SelectAll, null)
                 }
                 IconButton(onClick = { onAction(QueueAction.AddToPlaylist) }) {
-                    Icon(painterResource(R.drawable.playlist_add), null)
+                    Icon(imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd, null)
                 }
                 IconButton(onClick = { onAction(QueueAction.NewPlaylist) }) {
-                    Icon(painterResource(R.drawable.queue_music), null)
+                    Icon(imageVector = Icons.AutoMirrored.Rounded.QueueMusic, null)
                 }
                 IconButton(onClick = { onAction(QueueAction.RemoveSelection) }, enabled = !model.guest) {
-                    Icon(painterResource(R.drawable.delete), null, tint = MaterialTheme.colorScheme.error)
+                    Icon(imageVector = Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error)
                 }
                 FloatingActionButton(
                     onClick = { onAction(QueueAction.ClearSelection) },
                     modifier = Modifier.size(40.dp),
                     shape = CircleShape
                 ) {
-                    Icon(painterResource(R.drawable.close), null, Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Rounded.Close, null, Modifier.size(20.dp))
                 }
             }
         }
@@ -1285,7 +1298,7 @@ fun Queue(
                     }
                     val result = snackbar.showSnackbar(
                         message = message,
-                        actionLabel = context.getString(R.string.undo)
+                        actionLabel = context.getString(android.R.string.cancel)
                     )
                     viewModel.finishRemoval(event.token, result == SnackbarResult.ActionPerformed)
                 }
@@ -1303,9 +1316,12 @@ fun Queue(
 
     AddToPlaylistDialog(
         isVisible = model?.playlistDialog == true,
-        onGetSong = viewModel::prepareSelectedSongs,
-        onDismiss = { onAction(QueueAction.DismissPlaylist) },
-        onAddComplete = { _, _ -> viewModel.playlistAdded() }
+        onGetSong = { playlist ->
+            val ids = viewModel.prepareSelectedSongs(playlist)
+            viewModel.playlistAdded()
+            ids
+        },
+        onDismiss = { onAction(QueueAction.DismissPlaylist) }
     )
 
     if (model?.createPlaylistDialog == true) {
