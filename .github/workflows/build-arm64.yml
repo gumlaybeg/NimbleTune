@@ -58,7 +58,7 @@ jobs:
               --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
               --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
               --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
-              --out "${APK_DIR}/SimpleTune-arm64-release-signed.apk" \
+              --out "${APK_DIR}/NimbleTune-arm64-release-signed.apk" \
               "$APK_FILE"
           else
             echo "No keystore secret configured. Self-signing with a debug key..."
@@ -70,14 +70,14 @@ jobs:
               --ks-pass pass:android \
               --ks-key-alias test \
               --key-pass pass:android \
-              --out "${APK_DIR}/SimpleTune-arm64-release-signed.apk" \
+              --out "${APK_DIR}/NimbleTune-arm64-release-signed.apk" \
               "$APK_FILE"
           fi
 
       - name: Upload arm64 Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: SimpleTune-arm64-release
+          name: NimbleTune-arm64-release
           path: app/build/outputs/apk/arm64/release/*signed.apk
           if-no-files-found: error
           retention-days: 14

@@ -89,7 +89,7 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach { output ->
-                val outputFileName = "SimpleTune-${variant.versionName}-${variant.baseName}.apk"
+                val outputFileName = "NimbleTune-${variant.versionName}-${variant.baseName}.apk"
                 output.outputFileName = outputFileName
             }
     }

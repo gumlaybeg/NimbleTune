@@ -1,6 +1,6 @@
-# Simple Tube
+# NimbleTune
 
-<img src="./assets/SimpleTube.webp" height="72">
+<img src="./assets/NimbleTune.webp" height="72">
 
 ![pv](https://pageview.vercel.app/?github_user=Simple-Tube)
 
@@ -27,7 +27,7 @@ A Material 3 YouTube Music client & local music player for Android
 
 ## Features
 
-SimpleTube is a supercharged fork of [InnerTune](https://github.com/z-huang/InnerTune), with advanced account synchronization, local media playback, multiple queues, and a new take on UI design.
+NimbleTune is a supercharged fork of [InnerTune](https://github.com/z-huang/InnerTune), with advanced account synchronization, local media playback, multiple queues, and a new take on UI design.
 
 - Play, search, and save all your songs, videos, albums, and playlists from YouTube Music
     - Song downloading for offline playback
@@ -81,7 +81,7 @@ SimpleTube is a supercharged fork of [InnerTune](https://github.com/z-huang/Inne
 Use other music scrobbler apps. I
 recommend [Pano Scrobbler](https://play.google.com/store/apps/details?id=com.arn.scrobble).
 
-### Q: Why SimpleTune isn't showing in Android Auto?
+### Q: Why NimbleTune isn't showing in Android Auto?
 
 1. Go to Android Auto's settings and tap multiple times on the version in the bottom to enable
    developer settings

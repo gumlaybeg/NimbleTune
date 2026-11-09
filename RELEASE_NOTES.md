@@ -1,4 +1,4 @@
-# SimpleTune v0.2.2.2
+# NimbleTune v0.2.2.2
 
 ## What's Changed
 
@@ -19,6 +19,6 @@
 ---
 
 ## Downloads
-* **Universal Release APK**: `SimpleTune-0.2.2.2-universal-release.apk`
+* **Universal Release APK**: `NimbleTune-0.2.2.2-universal-release.apk`
 * **Version Code**: `6`
 * **Version Name**: `0.2.2.2`

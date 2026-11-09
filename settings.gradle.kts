@@ -10,7 +10,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SimpleTune"
+rootProject.name = "NimbleTune"
 include(":app")
 include(":innertube")
 include(":kugou")

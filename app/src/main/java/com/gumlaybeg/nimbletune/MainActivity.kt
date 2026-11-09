@@ -201,7 +201,7 @@ import com.gumlaybeg.nimbletune.ui.screens.settings.SettingsScreen
 import com.gumlaybeg.nimbletune.ui.screens.settings.StorageSettings
 import com.gumlaybeg.nimbletune.ui.theme.ColorSaver
 import com.gumlaybeg.nimbletune.ui.theme.DefaultThemeColor
-import com.gumlaybeg.nimbletune.ui.theme.SimpleTuneTheme
+import com.gumlaybeg.nimbletune.ui.theme.NimbleTuneTheme
 import com.gumlaybeg.nimbletune.ui.theme.extractThemeColor
 import com.gumlaybeg.nimbletune.ui.utils.DEFAULT_SCAN_PATH
 import com.gumlaybeg.nimbletune.ui.utils.MEDIA_PERMISSION_LEVEL
@@ -451,7 +451,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            SimpleTuneTheme(
+            NimbleTuneTheme(
                 darkTheme = useDarkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor

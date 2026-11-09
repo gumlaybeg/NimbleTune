@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025-2026 SimpleTune Project
+ * Copyright (C) 2025-2026 NimbleTune Project
  *
  * SPDX-License-Identifier: GPL-3.0
  *
