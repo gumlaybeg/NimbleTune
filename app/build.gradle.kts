@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "com.samyak.simpletube"
+    namespace = "com.gumlaybeg.nimbletune"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.samyak.simpletube"
+        applicationId = "com.gumlaybeg.nimbletune"
         minSdk = 26
         targetSdk = 36
         versionCode = 7
