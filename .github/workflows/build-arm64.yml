@@ -3,8 +3,8 @@ name: Build arm64 Release APK
 on:
   push:
     branches:
-      - '**' # Triggers on push to any branch
-  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+      - '**'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          lfs: true # Ensures binary .aar files are pulled if using Git LFS
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -32,9 +33,6 @@ jobs:
       - name: Build arm64 Release APK
         run: ./gradlew :app:assembleArm64Release --stacktrace
 
-      # Unsigned release APKs cannot be installed directly on Android devices.
-      # This step signs the APK with your release keystore if secrets are set,
-      # or automatically self-signs with a debug key so you can install and test it immediately.
       - name: Sign APK
         run: |
           APK_DIR="app/build/outputs/apk/arm64/release"
@@ -47,11 +45,15 @@ jobs:
 
           echo "Found APK: $APK_FILE"
 
+          # Locate the latest apksigner binary available in the Android SDK
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          echo "Using apksigner: $APKSIGNER"
+
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "Signing with repository secret keystore..."
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
             
-            $ANDROID_HOME/build-tools/35.0.0/apksigner sign \
+            "$APKSIGNER" sign \
               --ks release.keystore \
               --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
               --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
@@ -59,11 +61,11 @@ jobs:
               --out "${APK_DIR}/SimpleTune-arm64-release-signed.apk" \
               "$APK_FILE"
           else
-            echo "No keystore secret configured. Self-signing with a debug key so it is installable..."
+            echo "No keystore secret configured. Self-signing with a debug key..."
             keytool -genkey -v -keystore test.keystore -alias test -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android -dname "CN=AndroidDebug,O=Android,C=US"
             
-            $ANDROID_HOME/build-tools/35.0.0/apksigner sign \
+            "$APKSIGNER" sign \
               --ks test.keystore \
               --ks-pass pass:android \
               --ks-key-alias test \
