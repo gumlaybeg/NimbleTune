@@ -39,7 +39,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -84,6 +83,7 @@ import com.gumlaybeg.nimbletune.constants.ThumbnailCornerRadius
 import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
 import com.gumlaybeg.nimbletune.ui.component.EnumDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.InfoLabel
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
@@ -283,7 +283,8 @@ fun LocalPlayerSettings(
                                 } else {
                                     " "
                                 }
-                            }
+                            },
+                            onLongClick = {}
                         ) {
                             Icon(imageVector = Icons.Rounded.Close, contentDescription = null)
                         }
@@ -314,7 +315,6 @@ fun LocalPlayerSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Scanner Folders & Automation Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.auto_scanner_title),
             items = listOf(
@@ -339,7 +339,6 @@ fun LocalPlayerSettings(
             )
         )
 
-        // Manual Scanner Trigger
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_manual_scanner),
             items = listOf(
@@ -422,7 +421,6 @@ fun LocalPlayerSettings(
             )
         )
 
-        // Options Checkboxes Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.options),
             items = listOf(
@@ -449,7 +447,6 @@ fun LocalPlayerSettings(
             )
         )
 
-        // Metadata Extractor & Sensitivity Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_extra_scanner_settings),
             items = listOf(

@@ -1,6 +1,6 @@
 package com.gumlaybeg.nimbletune.ui.screens.settings
 
-import androidx.compose.animation.AnimatedVisibility
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,7 +21,6 @@ import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -63,6 +62,7 @@ import com.gumlaybeg.nimbletune.constants.VisitorDataKey
 import com.gumlaybeg.nimbletune.constants.YtmSyncKey
 import com.gumlaybeg.nimbletune.ui.component.EnumDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.InfoLabel
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
@@ -74,6 +74,7 @@ import com.zionhuang.innertube.YouTube
 import com.zionhuang.innertube.utils.parseCookieString
 import java.net.Proxy
 
+@SuppressLint("PrivateResource")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentSettings(
@@ -154,8 +155,8 @@ fun ContentSettings(
             values = LikedAutodownloadMode.entries.toList(),
             valueText = {
                 when (it) {
-                    LikedAutodownloadMode.OFF -> stringResource(R.string.state_off)
-                    LikedAutodownloadMode.ON -> stringResource(R.string.state_on)
+                    LikedAutodownloadMode.OFF -> stringResource(androidx.compose.ui.R.string.state_off)
+                    LikedAutodownloadMode.ON -> stringResource(androidx.compose.ui.R.string.state_on)
                     LikedAutodownloadMode.WIFI_ONLY -> stringResource(R.string.wifi_only)
                 }
             }
@@ -229,7 +230,6 @@ fun ContentSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Account Section
         ExpressiveSettingGroup(
             title = stringResource(R.string.account),
             items = buildList {
@@ -305,8 +305,8 @@ fun ContentSettings(
                         description = {
                             Text(
                                 when (likedAutoDownload) {
-                                    LikedAutodownloadMode.OFF -> stringResource(R.string.state_off)
-                                    LikedAutodownloadMode.ON -> stringResource(R.string.state_on)
+                                    LikedAutodownloadMode.OFF -> stringResource(androidx.compose.ui.R.string.state_off)
+                                    LikedAutodownloadMode.ON -> stringResource(androidx.compose.ui.R.string.state_on)
                                     LikedAutodownloadMode.WIFI_ONLY -> stringResource(R.string.wifi_only)
                                 }
                             )
@@ -339,7 +339,6 @@ fun ContentSettings(
             }
         )
 
-        // Localization Section
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_localization),
             items = listOf(
@@ -366,7 +365,6 @@ fun ContentSettings(
             )
         )
 
-        // Proxy Section
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_proxy),
             items = buildList {

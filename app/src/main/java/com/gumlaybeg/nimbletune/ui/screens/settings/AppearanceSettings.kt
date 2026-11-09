@@ -35,7 +35,6 @@ import androidx.compose.material.icons.rounded.Reorder
 import androidx.compose.material.icons.rounded.Tab
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -75,6 +74,7 @@ import com.gumlaybeg.nimbletune.extensions.move
 import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
 import com.gumlaybeg.nimbletune.ui.component.EnumDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.InfoLabel
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
@@ -301,7 +301,6 @@ fun AppearanceSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Theme Section
         ExpressiveSettingGroup(
             title = stringResource(R.string.theme),
             items = listOf(
@@ -358,7 +357,6 @@ fun AppearanceSettings(
             )
         )
 
-        // Interface Section
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_interface),
             items = listOf(
@@ -423,7 +421,6 @@ fun AppearanceSettings(
             )
         )
 
-        // Navigation Tabs Section
         ExpressiveSettingGroup(
             title = stringResource(R.string.tab_arrangement),
             items = listOf(

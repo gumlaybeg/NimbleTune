@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.NoCell
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -56,6 +55,7 @@ import com.gumlaybeg.nimbletune.constants.minPlaybackDurKey
 import com.gumlaybeg.nimbletune.ui.component.CounterDialog
 import com.gumlaybeg.nimbletune.ui.component.EnumDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
@@ -133,7 +133,6 @@ fun PlayerSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Audio Settings
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_audio),
             items = listOf(
@@ -200,7 +199,6 @@ fun PlayerSettings(
             )
         )
 
-        // Queue & Playback
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_general),
             items = listOf(
@@ -242,7 +240,6 @@ fun PlayerSettings(
             )
         )
 
-        // Background Service & System
         ExpressiveSettingGroup(
             title = stringResource(R.string.prefs_advanced),
             items = listOf(

@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,6 +50,7 @@ import com.gumlaybeg.nimbletune.constants.ScannerMatchCriteria
 import com.gumlaybeg.nimbletune.constants.ScannerSensitivityKey
 import com.gumlaybeg.nimbletune.db.entities.Song
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.menu.AddToPlaylistDialog
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
@@ -117,7 +117,6 @@ fun BackupAndRestore(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Backup & Restore Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.backup_restore),
             items = listOf(
@@ -141,7 +140,6 @@ fun BackupAndRestore(
             )
         )
 
-        // Media Import Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.import_m3u),
             items = listOf(

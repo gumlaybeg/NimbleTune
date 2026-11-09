@@ -16,7 +16,6 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -41,6 +40,7 @@ import com.gumlaybeg.nimbletune.constants.PauseRemoteListenHistoryKey
 import com.gumlaybeg.nimbletune.constants.PauseSearchHistoryKey
 import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
@@ -112,7 +112,6 @@ fun PrivacySettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Listen History Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.history),
             items = listOf(
@@ -148,7 +147,6 @@ fun PrivacySettings(
             )
         )
 
-        // Search History Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.search),
             items = listOf(

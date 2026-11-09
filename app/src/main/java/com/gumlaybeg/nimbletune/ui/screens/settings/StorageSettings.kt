@@ -1,5 +1,6 @@
 package com.gumlaybeg.nimbletune.ui.screens.settings
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +18,6 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,6 +53,7 @@ import com.gumlaybeg.nimbletune.playback.ExoDownloadService
 import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
 import com.gumlaybeg.nimbletune.ui.component.EnumDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.ui.utils.formatFileSize
@@ -62,6 +63,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+@SuppressLint("PrivateResource")
 @OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StorageSettings(
@@ -131,7 +133,7 @@ fun StorageSettings(
             },
             onCancel = { showClearDownloadsDialog = false },
             content = {
-                Text(text = stringResource(R.string.clear_downloads_dialog))
+                Text(text = "Are you sure you want to delete all downloaded songs?")
             }
         )
     }
@@ -166,7 +168,7 @@ fun StorageSettings(
             values = cacheOptions,
             valueText = {
                 when (it) {
-                    0 -> stringResource(R.string.state_off)
+                    0 -> stringResource(androidx.compose.ui.R.string.state_off)
                     else -> formatFileSize(it * 1024 * 1024L)
                 }
             }
@@ -187,7 +189,6 @@ fun StorageSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Download Storage Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.downloaded_songs),
             items = listOf(
@@ -206,7 +207,6 @@ fun StorageSettings(
             )
         )
 
-        // Image Cache Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.image_cache),
             items = listOf(
@@ -226,7 +226,7 @@ fun StorageSettings(
                                     text = "${formatFileSize(imageCacheSize)} / ${formatFileSize(imageDiskCache.maxSize)}"
                                 )
                             } else {
-                                Text(stringResource(R.string.state_off))
+                                Text(stringResource(androidx.compose.ui.R.string.state_off))
                             }
                         }
                     },

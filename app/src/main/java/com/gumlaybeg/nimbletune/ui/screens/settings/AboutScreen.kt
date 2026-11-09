@@ -2,11 +2,7 @@ package com.gumlaybeg.nimbletune.ui.screens.settings
 
 import android.os.Build
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,7 +24,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -52,6 +47,7 @@ import com.gumlaybeg.nimbletune.BuildConfig
 import com.gumlaybeg.nimbletune.LocalPlayerAwareWindowInsets
 import com.gumlaybeg.nimbletune.R
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 
@@ -77,7 +73,6 @@ fun AboutScreen(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // App Banner Surface
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -108,8 +103,9 @@ fun AboutScreen(
                     )
                 },
                 trailingContent = {
-                    androidx.compose.material3.IconButton(
-                        onClick = { uriHandler.openUri("https://github.com/samyak2403/Simple-Tube") }
+                    IconButton(
+                        onClick = { uriHandler.openUri("https://github.com/samyak2403/Simple-Tube") },
+                        onLongClick = {}
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.github),
@@ -119,11 +115,10 @@ fun AboutScreen(
                         )
                     }
                 },
-                colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
         }
 
-        // Developer & Project Info
         ExpressiveSettingGroup(
             title = stringResource(R.string.info),
             items = listOf(
@@ -148,7 +143,6 @@ fun AboutScreen(
             )
         )
 
-        // License & System Info
         ExpressiveSettingGroup(
             title = "App Information",
             items = listOf(
@@ -160,13 +154,12 @@ fun AboutScreen(
                 ),
                 Material3SettingsItem(
                     icon = rememberVectorPainter(Icons.Rounded.Info),
-                    title = { Text(stringResource(R.string.version_code)) },
+                    title = { Text("Version Code") },
                     trailingContent = { Text(BuildConfig.VERSION_CODE.toString()) }
                 )
             )
         )
 
-        // Debug info if debug build
         if (BuildConfig.DEBUG) {
             val debugInfo = listOf(
                 "Device: ${Build.BRAND} ${Build.DEVICE} (${Build.MODEL})",

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -36,6 +35,7 @@ import androidx.navigation.NavController
 import com.gumlaybeg.nimbletune.LocalPlayerAwareWindowInsets
 import com.gumlaybeg.nimbletune.R
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 
@@ -59,7 +59,6 @@ fun SettingsScreen(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Group 1: Media & Player Experience
         ExpressiveSettingGroup(
             title = stringResource(R.string.player_and_audio),
             items = listOf(
@@ -84,7 +83,6 @@ fun SettingsScreen(
             )
         )
 
-        // Group 2: Library & Storage
         ExpressiveSettingGroup(
             title = stringResource(R.string.library),
             items = listOf(
@@ -103,7 +101,6 @@ fun SettingsScreen(
             )
         )
 
-        // Group 3: Privacy, Backup & System
         ExpressiveSettingGroup(
             title = stringResource(R.string.prefs_advanced),
             items = listOf(

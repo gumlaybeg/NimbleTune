@@ -19,11 +19,9 @@ import androidx.compose.material.icons.rounded.DeveloperMode
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,6 +50,7 @@ import com.gumlaybeg.nimbletune.constants.FirstSetupPassed
 import com.gumlaybeg.nimbletune.constants.SwipeToSkip
 import com.gumlaybeg.nimbletune.ui.component.ActionPromptDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
@@ -60,7 +59,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,7 +115,6 @@ fun ExperimentalSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Experimental Features Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.experimental_settings_title),
             items = listOf(
@@ -159,14 +156,12 @@ fun ExperimentalSettings(
             )
         )
 
-        // Sync Status Items
         SyncProgressItem(stringResource(R.string.songs), isSyncingRemoteSongs)
         SyncProgressItem(stringResource(R.string.liked_songs), isSyncingRemoteLikedSongs)
         SyncProgressItem(stringResource(R.string.artists), isSyncingRemoteArtists)
         SyncProgressItem(stringResource(R.string.albums), isSyncingRemoteAlbums)
         SyncProgressItem(stringResource(R.string.playlists), isSyncingRemotePlaylists)
 
-        // Developer Mode Group
         if (devSettings) {
             ExpressiveSettingGroup(
                 title = stringResource(R.string.settings_debug),

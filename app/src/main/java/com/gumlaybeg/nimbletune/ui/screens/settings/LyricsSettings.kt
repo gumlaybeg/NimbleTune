@@ -17,7 +17,6 @@ import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -46,6 +45,7 @@ import com.gumlaybeg.nimbletune.constants.MultilineLrcKey
 import com.gumlaybeg.nimbletune.ui.component.CounterDialog
 import com.gumlaybeg.nimbletune.ui.component.EnumDialog
 import com.gumlaybeg.nimbletune.ui.component.ExpressiveSettingGroup
+import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.component.Material3SettingsItem
 import com.gumlaybeg.nimbletune.ui.component.ModernSwitch
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
@@ -120,7 +120,6 @@ fun LyricsSettings(
             modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
         )
 
-        // Providers Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_lyrics_source),
             items = listOf(
@@ -161,7 +160,6 @@ fun LyricsSettings(
             )
         )
 
-        // Parser & Formatting Group
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_lyrics_parser),
             items = listOf(
