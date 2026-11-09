@@ -122,6 +122,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -377,7 +378,8 @@ fun BottomSheetPlayer(
     var playerState by remember { mutableStateOf(PlayerInternalState.COVER) }
     var controlsVisible by remember { mutableStateOf(true) }
 
-    BackHandler(enabled = state.isExpanded && playerState != PlayerInternalState.COVER) {
+    // Responsive sub-screen back handler: prioritize dropping back to COVER state immediately
+    BackHandler(enabled = playerState != PlayerInternalState.COVER) {
         playerState = PlayerInternalState.COVER
     }
 
@@ -491,9 +493,9 @@ fun BottomSheetPlayer(
         }
     ) {
         AnimatedVisibility(
-            visible = !powerManager.isPowerSaveMode && state.isExpanded,
-            enter = fadeIn(tween(500)),
-            exit = fadeOut(tween(500))
+            visible = !powerManager.isPowerSaveMode && (state.value > state.collapsedBound),
+            enter = fadeIn(tween(300)),
+            exit = fadeOut(tween(200))
         ) {
             if (playerBackground == PlayerBackgroundStyle.BLUR) {
                 if (mediaMetadata?.isLocal == true) {
@@ -657,8 +659,8 @@ private fun PlayerV2Landscape(
     AnimatedContent(
         targetState = playerState,
         transitionSpec = {
-            (fadeIn(tween(350, easing = FastOutSlowInEasing)) + scaleIn(initialScale = 0.95f))
-                .togetherWith(fadeOut(tween(200, easing = FastOutSlowInEasing)) + scaleOut(targetScale = 0.95f))
+            (fadeIn(tween(250, easing = FastOutSlowInEasing)) + scaleIn(initialScale = 0.96f))
+                .togetherWith(fadeOut(tween(180, easing = FastOutSlowInEasing)) + scaleOut(targetScale = 0.96f))
         },
         label = "landscapeStateAnimation",
         modifier = modifier.fillMaxSize()
@@ -939,7 +941,6 @@ private fun PlayerV2Landscape(
                         }
                     }
 
-                    // Interactive Volume Slider Bar
                     var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
                     val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
 
@@ -1296,7 +1297,7 @@ private fun PlayerV2Portrait(
                 .padding(top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding())
                 .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding())
         ) {
-            // Drag handle pill at the top
+            // Drag handle pill at the top: tapping it collapses the sheet immediately
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1319,8 +1320,8 @@ private fun PlayerV2Portrait(
                 AnimatedContent(
                     targetState = playerState,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) togetherWith
-                         fadeOut(animationSpec = tween(250, easing = FastOutSlowInEasing)))
+                        fadeIn(animationSpec = tween(250, easing = FastOutSlowInEasing)) togetherWith
+                        fadeOut(animationSpec = tween(180, easing = FastOutSlowInEasing))
                     },
                     modifier = Modifier.fillMaxSize(),
                     label = "InternalWindow"
@@ -1623,12 +1624,12 @@ private fun PlayerV2Portrait(
             // Controls Section
             AnimatedVisibility(
                 visible = controlsVisible,
-                enter = fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)) +
-                        slideInVertically(animationSpec = tween(400, easing = FastOutSlowInEasing)) { it } +
-                        expandVertically(animationSpec = tween(400, easing = FastOutSlowInEasing)),
-                exit = fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-                       slideOutVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } +
-                       shrinkVertically(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                enter = fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                        slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } +
+                        expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)),
+                exit = fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
+                       slideOutVertically(animationSpec = tween(200, easing = FastOutSlowInEasing)) { it } +
+                       shrinkVertically(animationSpec = tween(200, easing = FastOutSlowInEasing))
             ) {
                 Column(
                     modifier = Modifier

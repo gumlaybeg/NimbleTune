@@ -48,11 +48,11 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.gumlaybeg.nimbletune.constants.NavigationBarAnimationSpec
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
- * Bottom Sheet
- * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
+ * Bottom Sheet with immediate, responsive back navigation and animation cancellation
  */
 @Composable
 fun BottomSheet(
@@ -64,6 +64,19 @@ fun BottomSheet(
     collapsedBackgroundColor: Color = Color.Transparent,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    // Intercept back presses whenever the sheet is above its collapsed bound or animating upward
+    val canCollapseOnBack by remember(state) {
+        derivedStateOf {
+            !state.isDismissed && (state.value > state.collapsedBound || state.isExpanded || state.targetAnchor == expandedAnchor)
+        }
+    }
+
+    if (canCollapseOnBack) {
+        BackHandler {
+            state.collapseSoft()
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -99,10 +112,6 @@ fun BottomSheet(
                 )
             )
     ) {
-        if (!state.isCollapsed && !state.isDismissed) {
-            BackHandler(onBack = state::collapseSoft)
-        }
-
         if (!state.isCollapsed) {
             BoxWithConstraints(
                 modifier = Modifier
@@ -143,16 +152,21 @@ class BottomSheetState(
     private val onAnchorChanged: (Int) -> Unit,
     val collapsedBound: Dp,
 ) : DraggableState by draggableState {
+    var targetAnchor: Int = collapsedAnchor
+        private set
+
+    private var animationJob: Job? = null
+
     val dismissedBound: Dp
-        get() = animatable.lowerBound!!
+        get() = animatable.lowerBound ?: 0.dp
 
     val expandedBound: Dp
-        get() = animatable.upperBound!!
+        get() = animatable.upperBound ?: 1000.dp
 
     val value by animatable.asState()
 
     val isDismissed by derivedStateOf {
-        value == animatable.lowerBound!!
+        value <= (animatable.lowerBound ?: 0.dp)
     }
 
     val isCollapsed by derivedStateOf {
@@ -160,32 +174,39 @@ class BottomSheetState(
     }
 
     val isExpanded by derivedStateOf {
-        progress >= 1.0f
+        progress >= 0.99f
     }
 
     val progress by derivedStateOf {
-        1f - (animatable.upperBound!! - animatable.value) / (animatable.upperBound!! - collapsedBound)
+        val upper = animatable.upperBound ?: return@derivedStateOf 0f
+        val range = upper - collapsedBound
+        if (range <= 0.dp) 0f
+        else (1f - ((upper - animatable.value) / range)).coerceIn(0f, 1f)
     }
 
     fun collapse(animationSpec: AnimationSpec<Dp>) {
+        targetAnchor = collapsedAnchor
         onAnchorChanged(collapsedAnchor)
-        coroutineScope.launch {
+        animationJob?.cancel()
+        animationJob = coroutineScope.launch {
             animatable.animateTo(collapsedBound, animationSpec)
         }
     }
 
     fun expand(animationSpec: AnimationSpec<Dp>) {
+        targetAnchor = expandedAnchor
         onAnchorChanged(expandedAnchor)
-        coroutineScope.launch {
-            animatable.animateTo(animatable.upperBound!!, animationSpec)
+        animationJob?.cancel()
+        animationJob = coroutineScope.launch {
+            animatable.animateTo(expandedBound, animationSpec)
         }
     }
 
-    private fun collapse() {
+    fun collapse() {
         collapse(SpringSpec())
     }
 
-    private fun expand() {
+    fun expand() {
         expand(SpringSpec())
     }
 
@@ -198,15 +219,18 @@ class BottomSheetState(
     }
 
     fun dismiss() {
+        targetAnchor = dismissedAnchor
         onAnchorChanged(dismissedAnchor)
-        coroutineScope.launch {
-            animatable.animateTo(animatable.lowerBound!!)
+        animationJob?.cancel()
+        animationJob = coroutineScope.launch {
+            animatable.animateTo(dismissedBound)
         }
     }
 
-    fun snapTo(value: Dp) {
-        coroutineScope.launch {
-            animatable.snapTo(value)
+    fun snapTo(target: Dp) {
+        animationJob?.cancel()
+        animationJob = coroutineScope.launch {
+            animatable.snapTo(target)
         }
     }
 
@@ -235,7 +259,6 @@ class BottomSheetState(
                         collapse()
                     }
                 }
-
                 in l1..l2 -> collapse()
                 in l2..l3 -> expand()
                 else -> Unit
@@ -281,7 +304,6 @@ class BottomSheetState(
                 return if (isTopReached) {
                     val velocity = -available.y
                     performFling(velocity, null)
-
                     available
                 } else {
                     Velocity.Zero
