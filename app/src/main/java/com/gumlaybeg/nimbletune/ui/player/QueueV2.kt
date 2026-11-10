@@ -326,57 +326,59 @@ fun QueueV2(
                         )
 
                         val content: @Composable () -> Unit = {
-                            val metadata = window.mediaItem.metadata ?: return@ReorderableItem
-                            MediaMetadataListItem(
-                                mediaMetadata = metadata,
-                                isSelected = false,
-                                isActive = isActive,
-                                isPlaying = isPlaying && isActive,
-                                trailingContent = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        IconButton(
-                                            onClick = {
-                                                menuState.show {
-                                                    PlayerMenu(
-                                                        mediaMetadata = metadata,
-                                                        navController = navController,
-                                                        playerBottomSheetState = playerBottomSheetState,
-                                                        onDismiss = menuState::dismiss
+                            val metadata = window.mediaItem.metadata
+                            if (metadata != null) {
+                                MediaMetadataListItem(
+                                    mediaMetadata = metadata,
+                                    isSelected = false,
+                                    isActive = isActive,
+                                    isPlaying = isPlaying && isActive,
+                                    trailingContent = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            IconButton(
+                                                onClick = {
+                                                    menuState.show {
+                                                        PlayerMenu(
+                                                            mediaMetadata = metadata,
+                                                            navController = navController,
+                                                            playerBottomSheetState = playerBottomSheetState,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.MoreVert,
+                                                    contentDescription = "Options"
+                                                )
+                                            }
+
+                                            if (!locked) {
+                                                IconButton(
+                                                    onClick = {},
+                                                    modifier = Modifier.draggableHandle()
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.DragHandle,
+                                                        contentDescription = "Reorder"
                                                     )
                                                 }
                                             }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.MoreVert,
-                                                contentDescription = "Options"
-                                            )
                                         }
-
-                                        if (!locked) {
-                                            IconButton(
-                                                onClick = {},
-                                                modifier = Modifier.draggableHandle()
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.DragHandle,
-                                                    contentDescription = "Reorder"
-                                                )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (index == currentWindowIndex) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.player.seekToDefaultPosition(window.firstPeriodIndex)
+                                                playerConnection.player.prepare()
+                                                playerConnection.player.playWhenReady = true
                                             }
                                         }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (index == currentWindowIndex) {
-                                            playerConnection.player.togglePlayPause()
-                                        } else {
-                                            playerConnection.player.seekToDefaultPosition(window.firstPeriodIndex)
-                                            playerConnection.player.prepare()
-                                            playerConnection.player.playWhenReady = true
-                                        }
-                                    }
-                            )
+                                )
+                            }
                         }
 
                         if (locked) {

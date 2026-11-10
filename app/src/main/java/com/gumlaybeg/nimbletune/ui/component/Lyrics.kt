@@ -17,8 +17,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,13 +26,11 @@ import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -60,8 +56,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -69,13 +65,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -83,8 +77,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -100,7 +92,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -109,7 +100,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import com.gumlaybeg.nimbletune.LocalPlayerConnection
 import com.gumlaybeg.nimbletune.R
 import com.gumlaybeg.nimbletune.constants.LyricFontSizeKey
@@ -129,18 +119,12 @@ import com.gumlaybeg.nimbletune.ui.utils.fadingEdge
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
 import com.gumlaybeg.nimbletune.utils.rememberPreference
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.BreakIterator
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.exp
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
+const val animateScrollDuration = 300L
 private const val LYRICS_ANCHOR_RATIO = 0.40f
 private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 64.dp
 private val LYRICS_ITEM_GAP_DP = 14.dp
@@ -149,13 +133,6 @@ sealed class LyricsListItemV2 {
     data class Line(val index: Int, val entry: LyricsEntry) : LyricsListItemV2()
     data class Indicator(val gapStartMs: Long, val gapEndMs: Long) : LyricsListItemV2()
 }
-
-data class MetroWordTimestamp(
-    val text: String,
-    val startTime: Double,
-    val endTime: Double,
-    val hasTrailingSpace: Boolean
-)
 
 private fun String.toGraphemeClusters(): List<String> {
     if (isEmpty()) return emptyList()
@@ -177,6 +154,7 @@ fun Lyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val menuState = LocalMenuState.current
@@ -555,8 +533,6 @@ fun LyricWordRow(
         platformStyle = PlatformTextStyle(includeFontPadding = false),
         lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both)
     )
-
-    val clusters = remember(entry.content) { entry.content.toGraphemeClusters() }
 
     BoxWithConstraints(
         modifier = modifier
