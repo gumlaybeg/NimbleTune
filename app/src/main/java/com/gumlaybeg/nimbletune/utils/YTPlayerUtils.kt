@@ -6,7 +6,7 @@
  * For any other attributions, refer to the git commit history
  */
 
-package com.gumlaybeg.nimbletune.utils
+package com.music.innertube.utils
 
 import android.net.ConnectivityManager
 import android.util.Log
@@ -18,10 +18,12 @@ import com.gumlaybeg.nimbletune.utils.potoken.PoTokenResult
 import com.music.innertube.NewPipeExtractor
 import com.music.innertube.YouTube
 import com.music.innertube.models.YouTubeClient
+import com.music.innertube.models.YouTubeClient.Companion.ANDROID_NO_SDK
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
 import com.music.innertube.models.YouTubeClient.Companion.IOS
 import com.music.innertube.models.YouTubeClient.Companion.MOBILE
 import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
+import com.music.innertube.models.YouTubeClient.Companion.VISIONOS
 import com.music.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.music.innertube.models.response.PlayerResponse
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -68,9 +70,11 @@ object YTPlayerUtils {
             .build()
     }
 
-    val MAIN_CLIENT: YouTubeClient = IOS
+    val MAIN_CLIENT: YouTubeClient = VISIONOS
 
     val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
+        ANDROID_NO_SDK,
+        IOS,
         MOBILE,
         ANDROID_VR_NO_AUTH,
         WEB_REMIX,
