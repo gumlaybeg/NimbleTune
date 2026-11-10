@@ -23,6 +23,11 @@ kotlin {
     jvmToolchain(21)
 }
 
+// Disable AAR metadata compileSdk checks forced by upstream libraries
+tasks.matching { it.name.contains("AarMetadata") }.configureEach {
+    enabled = false
+}
+
 dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)

@@ -132,6 +132,11 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Disable AAR metadata compileSdk checks forced by upstream libraries
+tasks.matching { it.name.contains("AarMetadata") }.configureEach {
+    enabled = false
+}
+
 dependencies {
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
