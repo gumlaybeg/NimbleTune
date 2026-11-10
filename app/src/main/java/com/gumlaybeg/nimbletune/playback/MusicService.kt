@@ -356,10 +356,6 @@ class MusicService : MediaLibraryService(),
                     // start playback again on seek
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         super.onMediaItemTransition(mediaItem, reason)
-                        // +2 when and error happens, and -1 when transition. Thus when error, number increments by 1, else doesn't change
-                        if (consecutivePlaybackErr > 0) {
-                            consecutivePlaybackErr--
-                        }
 
                         if (player.isPlaying && reason == MEDIA_ITEM_TRANSITION_REASON_SEEK) {
                             player.prepare()
@@ -563,7 +559,7 @@ class MusicService : MediaLibraryService(),
          * To prevent a "runaway diesel engine" scenario, force the user to take action after
          * too many errors come up too quickly. Pause to show player "stopped" state
          */
-        consecutivePlaybackErr += 2
+        consecutivePlaybackErr++
         val nextWindowIndex = player.nextMediaItemIndex
 
         if (consecutivePlaybackErr <= MAX_CONSECUTIVE_ERR && nextWindowIndex != C.INDEX_UNSET) {
