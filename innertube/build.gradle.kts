@@ -35,7 +35,9 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.encoding)
     implementation(libs.brotli)
-    implementation(libs.innertubex)
+    
+    // REMOVED: implementation(libs.innertubex) (This was causing the Kotlin 2.4.0 metadata crash)
+    
     implementation(libs.newpipeextractor)
     testImplementation(libs.junit)
 

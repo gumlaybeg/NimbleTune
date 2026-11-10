@@ -11,7 +11,6 @@ hilt = "2.55"
 ktor = "3.1.1"
 ksp = "2.1.0-1.0.29"
 taglib = "1.0.0"
-innertubex = "v0.11.5"
 newpipeExtractor = "v0.26.5"
 
 [libraries]
@@ -77,8 +76,6 @@ timber = { group = "com.jakewharton.timber", name = "timber", version = "5.0.1" 
 
 taglib = { module = "com.github.Kyant0:taglib", version.ref = "taglib" }
 
-# Required by the new innertube module
-innertubex = { group = "com.github.MetrolistGroup.innertubex", name = "innertubex", version.ref = "innertubex" }
 newpipeextractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipeExtractor" }
 newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipeExtractor" }
 
