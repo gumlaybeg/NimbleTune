@@ -6,7 +6,7 @@
  * For any other attributions, refer to the git commit history
  */
 
-package com.music.innertube.utils
+package com.gumlaybeg.nimbletune.utils
 
 import android.net.ConnectivityManager
 import android.util.Log
