@@ -14,8 +14,14 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -38,6 +44,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,9 +60,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -90,10 +94,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,16 +104,18 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -122,15 +125,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.media3.common.C
-import androidx.media3.common.Player.REPEAT_MODE_OFF
-import androidx.media3.common.Player.REPEAT_MODE_ONE
-import androidx.media3.common.Player.STATE_ENDED
-import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -142,19 +136,16 @@ import com.gumlaybeg.nimbletune.constants.PlayerBackgroundStyleKey
 import com.gumlaybeg.nimbletune.constants.ThumbnailCornerRadius
 import com.gumlaybeg.nimbletune.db.entities.LyricsEntity
 import com.gumlaybeg.nimbletune.db.entities.Song
-import com.gumlaybeg.nimbletune.extensions.metadata
 import com.gumlaybeg.nimbletune.extensions.togglePlayPause
 import com.gumlaybeg.nimbletune.extensions.toggleRepeatMode
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.models.toMediaMetadata
-import com.gumlaybeg.nimbletune.playback.PlayerConnection.Companion.queueBoard
 import com.gumlaybeg.nimbletune.playback.isShuffleEnabled
 import com.gumlaybeg.nimbletune.ui.component.AsyncImageLocal
 import com.gumlaybeg.nimbletune.ui.component.BottomSheet
 import com.gumlaybeg.nimbletune.ui.component.BottomSheetState
 import com.gumlaybeg.nimbletune.ui.component.LocalMenuState
 import com.gumlaybeg.nimbletune.ui.component.Lyrics
-import com.gumlaybeg.nimbletune.ui.component.MediaMetadataListItem
 import com.gumlaybeg.nimbletune.ui.component.PlayerSliderTrack
 import com.gumlaybeg.nimbletune.ui.menu.LyricsMenu
 import com.gumlaybeg.nimbletune.ui.menu.PlayerMenu
@@ -170,20 +161,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import kotlin.math.PI
+import kotlin.math.sin
+import androidx.media3.common.C
+import androidx.media3.common.Player.REPEAT_MODE_OFF
+import androidx.media3.common.Player.REPEAT_MODE_ONE
+import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.Player.STATE_READY
 
 enum class PlayerInternalState { COVER, LYRICS, QUEUE }
-
-enum class SliderStyle { EXPANDING, DEFAULT, SQUIGGLY, SLIM }
-
-enum class CoverResolution(val size: Int) {
-    RES_500(500), RES_800(800), RES_1080(1080)
-}
-
-val SliderStyleKey = stringPreferencesKey("sliderStyle")
-val ShowPlayerThumbnailShadowKey = booleanPreferencesKey("showPlayerThumbnailShadow")
-val PlayerThumbnailShadowElevationKey = floatPreferencesKey("playerThumbnailShadowElevation")
-val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
-val CoverResolutionKey = stringPreferencesKey("coverResolution")
+enum class SliderStyle { EXPANDING, DEFAULT, SLIM }
+enum class CoverResolution(val size: Int) { RES_500(500), RES_800(800), RES_1080(1080) }
 
 fun Modifier.customSoftShadow(
     elevation: Dp,
@@ -207,15 +195,10 @@ fun Modifier.SwipeGesture(
     var totalDrag = 0f
     detectHorizontalDragGestures(
         onDragStart = { totalDrag = 0f },
-        onHorizontalDrag = { _, dragAmount ->
-            totalDrag += dragAmount
-        },
+        onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
         onDragEnd = {
-            if (totalDrag > 80f) {
-                onSwipeRight()
-            } else if (totalDrag < -80f) {
-                onSwipeLeft()
-            }
+            if (totalDrag > 80f) onSwipeRight()
+            else if (totalDrag < -80f) onSwipeLeft()
         },
         onDragCancel = { totalDrag = 0f }
     )
@@ -231,6 +214,83 @@ object PlayerSliderColors {
         activeTrackColor = activeColor,
         inactiveTrackColor = activeColor.copy(alpha = 0.25f),
         thumbColor = activeColor
+    )
+}
+
+@Composable
+fun LiveMeshBackground(
+    colors: List<Color>,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val activeColors = if (colors.size >= 2) colors else listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
+    val infiniteTransition = rememberInfiniteTransition(label = "LiveMeshTransition")
+
+    val progress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(if (isPlaying) 18000 else 32000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "meshProgress"
+    )
+
+    fun colorAt(index: Int): Color {
+        val count = activeColors.size
+        val idx = (index.toFloat() + progress * count) % count
+        val a = idx.toInt()
+        val b = (a + 1) % count
+        return lerp(activeColors[a], activeColors[b], idx - a)
+    }
+
+    fun osc(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
+        val v = sin(2f * PI.toFloat() * (progress * speed + phase))
+        return min + (max - min) * ((v + 1f) * 0.5f)
+    }
+
+    val c1 = colorAt(0)
+    val c2 = colorAt(1)
+    val c3 = colorAt(2 % activeColors.size)
+    val c4 = colorAt(3 % activeColors.size)
+
+    val o1x = osc(0.05f, 0.95f, 0.00f, 1.0f)
+    val o1y = osc(0.05f, 0.55f, 0.12f, 1.0f)
+    val r1 = osc(0.7f, 1.4f, 0.15f, 1.0f)
+
+    val o2x = osc(0.95f, 0.10f, 0.25f, 0.8f)
+    val o2y = osc(0.40f, 0.95f, 0.30f, 0.8f)
+    val r2 = osc(0.6f, 1.3f, 0.22f, 1.0f)
+
+    val o3x = osc(0.15f, 0.85f, 0.45f, 1.2f)
+    val o3y = osc(0.75f, 0.25f, 0.50f, 1.2f)
+    val r3 = osc(0.65f, 1.35f, 0.40f, 1.0f)
+
+    val o4x = osc(0.35f, 0.65f, 0.65f, 0.9f)
+    val o4y = osc(0.10f, 0.90f, 0.70f, 0.9f)
+    val r4 = osc(0.8f, 1.5f, 0.60f, 1.0f)
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .drawWithCache {
+                val w = size.width
+                val h = size.height
+                val base = Color(0xFF0A0A0E)
+
+                val b1 = Brush.radialGradient(listOf(c1.copy(alpha = 0.85f), c1.copy(alpha = 0.35f), Color.Transparent), Offset(w * o1x, h * o1y), w * r1)
+                val b2 = Brush.radialGradient(listOf(c2.copy(alpha = 0.80f), c2.copy(alpha = 0.30f), Color.Transparent), Offset(w * o2x, h * o2y), w * r2)
+                val b3 = Brush.radialGradient(listOf(c3.copy(alpha = 0.75f), c3.copy(alpha = 0.25f), Color.Transparent), Offset(w * o3x, h * o3y), w * r3)
+                val b4 = Brush.radialGradient(listOf(c4.copy(alpha = 0.70f), c4.copy(alpha = 0.20f), Color.Transparent), Offset(w * o4x, h * o4y), w * r4)
+
+                onDrawBehind {
+                    drawRect(base)
+                    drawRect(b1)
+                    drawRect(b2)
+                    drawRect(b3)
+                    drawRect(b4)
+                }
+            }
     )
 }
 
@@ -272,10 +332,7 @@ fun PlayerV2Slider(
                     onValueChange(value.toLong())
                 },
                 onValueChangeFinished = {
-                    val targetPos = scrubbedValue?.toLong()
-                    if (targetPos != null) {
-                        onSeekTo(targetPos)
-                    }
+                    scrubbedValue?.toLong()?.let(onSeekTo)
                     scrubbedValue = null
                 },
                 enabled = maxRange > 0f,
@@ -304,10 +361,7 @@ fun PlayerV2Slider(
                     onValueChange(value.toLong())
                 },
                 onValueChangeFinished = {
-                    val targetPos = scrubbedValue?.toLong()
-                    if (targetPos != null) {
-                        onSeekTo(targetPos)
-                    }
+                    scrubbedValue?.toLong()?.let(onSeekTo)
                     scrubbedValue = null
                 },
                 enabled = maxRange > 0f,
@@ -335,10 +389,7 @@ fun PlayerV2Slider(
                     onValueChange(value.toLong())
                 },
                 onValueChangeFinished = {
-                    val targetPos = scrubbedValue?.toLong()
-                    if (targetPos != null) {
-                        onSeekTo(targetPos)
-                    }
+                    scrubbedValue?.toLong()?.let(onSeekTo)
                     scrubbedValue = null
                 },
                 enabled = maxRange > 0f,
@@ -378,7 +429,6 @@ fun BottomSheetPlayer(
     var playerState by remember { mutableStateOf(PlayerInternalState.COVER) }
     var controlsVisible by remember { mutableStateOf(true) }
 
-    // Responsive sub-screen back handler: prioritize dropping back to COVER state immediately
     BackHandler(enabled = playerState != PlayerInternalState.COVER) {
         playerState = PlayerInternalState.COVER
     }
@@ -393,13 +443,12 @@ fun BottomSheetPlayer(
     var duration by remember { mutableLongStateOf(0L) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
 
-    val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.DEFAULT)
+    val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.LIVE_MESH)
     val thumbnailCornerRadius = ThumbnailCornerRadius.value
-    val coverResolution by rememberEnumPreference(CoverResolutionKey, defaultValue = CoverResolution.RES_1080)
-    val sliderStyle by rememberEnumPreference(SliderStyleKey, defaultValue = SliderStyle.EXPANDING)
-    val showPlayerThumbnailShadow by rememberPreference(ShowPlayerThumbnailShadowKey, defaultValue = true)
-    val playerThumbnailShadowElevation by rememberPreference(PlayerThumbnailShadowElevationKey, defaultValue = 8f)
-    val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, defaultValue = false)
+    val coverResolution = CoverResolution.RES_1080
+    val sliderStyle = SliderStyle.EXPANDING
+    val showPlayerThumbnailShadow = true
+    val playerThumbnailShadowElevation = 10f
 
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -411,7 +460,7 @@ fun BottomSheetPlayer(
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
 
     LaunchedEffect(mediaMetadata) {
-        if (playerBackground != PlayerBackgroundStyle.GRADIENT || powerManager.isPowerSaveMode) return@LaunchedEffect
+        if (powerManager.isPowerSaveMode) return@LaunchedEffect
         withContext(Dispatchers.IO) {
             if (mediaMetadata?.isLocal == true) {
                 imageCache.getLocalThumbnail(mediaMetadata?.localPath)?.extractGradientColors()?.let {
@@ -451,24 +500,21 @@ fun BottomSheetPlayer(
     val adaptivePrimary by animateColorAsState(
         targetValue = when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onSurface
-            PlayerBackgroundStyle.BLUR,
-            PlayerBackgroundStyle.GRADIENT -> Color.White
+            else -> Color.White
         },
         label = "adaptivePrimary"
     )
     val adaptiveSecondary by animateColorAsState(
         targetValue = when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onSurfaceVariant
-            PlayerBackgroundStyle.BLUR,
-            PlayerBackgroundStyle.GRADIENT -> Color.White.copy(alpha = 0.7f)
+            else -> Color.White.copy(alpha = 0.7f)
         },
         label = "adaptiveSecondary"
     )
     val adaptiveSurface by animateColorAsState(
         targetValue = when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surfaceVariant
-            PlayerBackgroundStyle.BLUR,
-            PlayerBackgroundStyle.GRADIENT -> Color.White.copy(alpha = 0.2f)
+            else -> Color.White.copy(alpha = 0.2f)
         },
         label = "adaptiveSurface"
     )
@@ -497,7 +543,12 @@ fun BottomSheetPlayer(
             enter = fadeIn(tween(300)),
             exit = fadeOut(tween(200))
         ) {
-            if (playerBackground == PlayerBackgroundStyle.BLUR) {
+            if (playerBackground == PlayerBackgroundStyle.LIVE_MESH || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+                LiveMeshBackground(
+                    colors = gradientColors,
+                    isPlaying = isPlaying
+                )
+            } else if (playerBackground == PlayerBackgroundStyle.BLUR) {
                 if (mediaMetadata?.isLocal == true) {
                     mediaMetadata?.let {
                         AsyncImageLocal(
@@ -506,7 +557,7 @@ fun BottomSheetPlayer(
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .blur(200.dp)
+                                .blur(150.dp)
                         )
                     }
                 } else {
@@ -516,14 +567,14 @@ fun BottomSheetPlayer(
                         contentScale = ContentScale.FillBounds,
                         modifier = Modifier
                             .fillMaxSize()
-                            .blur(200.dp)
+                            .blur(150.dp)
                     )
                 }
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f))
+                        .background(Color.Black.copy(alpha = 0.40f))
                 )
             } else if (playerBackground == PlayerBackgroundStyle.GRADIENT && gradientColors.size >= 2) {
                 Box(
@@ -565,7 +616,6 @@ fun BottomSheetPlayer(
                 coverResolution = coverResolution,
                 showPlayerThumbnailShadow = showPlayerThumbnailShadow,
                 playerThumbnailShadowElevation = playerThumbnailShadowElevation,
-                hidePlayerThumbnail = hidePlayerThumbnail,
                 adaptivePrimary = adaptivePrimary,
                 adaptiveSecondary = adaptiveSecondary,
                 adaptiveSurface = adaptiveSurface,
@@ -604,7 +654,6 @@ fun BottomSheetPlayer(
                 coverResolution = coverResolution,
                 showPlayerThumbnailShadow = showPlayerThumbnailShadow,
                 playerThumbnailShadowElevation = playerThumbnailShadowElevation,
-                hidePlayerThumbnail = hidePlayerThumbnail,
                 adaptivePrimary = adaptivePrimary,
                 adaptiveSecondary = adaptiveSecondary,
                 adaptiveSurface = adaptiveSurface,
@@ -641,7 +690,6 @@ private fun PlayerV2Landscape(
     coverResolution: CoverResolution,
     showPlayerThumbnailShadow: Boolean,
     playerThumbnailShadowElevation: Float,
-    hidePlayerThumbnail: Boolean,
     adaptivePrimary: Color,
     adaptiveSecondary: Color,
     adaptiveSurface: Color,
@@ -697,19 +745,7 @@ private fun PlayerV2Landscape(
                                 onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
                             )
                     ) {
-                        if (hidePlayerThumbnail) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(72.dp),
-                                    tint = adaptivePrimary.copy(alpha = 0.5f)
-                                )
-                            }
-                        } else if (mediaMetadata?.isLocal == true) {
+                        if (mediaMetadata?.isLocal == true) {
                             AsyncImageLocal(
                                 image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, false) },
                                 contentDescription = null,
@@ -941,9 +977,6 @@ private fun PlayerV2Landscape(
                         }
                     }
 
-                    var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
-                    val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
-
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -967,13 +1000,11 @@ private fun PlayerV2Landscape(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Slider(
-                            value = currentEffectiveVolume.coerceIn(0f, 1f),
+                            value = (if (isMuted) 0f else playerVolume).coerceIn(0f, 1f),
                             onValueChange = { newValue ->
-                                volumeSliderPosition = newValue
                                 playerConnection.service.playerVolume.value = newValue
                                 if (newValue > 0f) isMuted = false
                             },
-                            onValueChangeFinished = { volumeSliderPosition = null },
                             valueRange = 0f..1f,
                             thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                             track = { sliderState ->
@@ -1012,7 +1043,7 @@ private fun PlayerV2Landscape(
                         IconButton(onClick = { onPlayerStateChange(if (isQueueActive) PlayerInternalState.COVER else PlayerInternalState.QUEUE) }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                                contentDescription = stringResource(R.string.queues_title),
+                                contentDescription = stringResource(R.string.queue),
                                 tint = if (isQueueActive) adaptivePrimary else adaptiveSecondary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -1230,7 +1261,7 @@ private fun PlayerV2Landscape(
                             modifier = Modifier.fillMaxSize()
                         )
                     } else if (currentUiState == PlayerInternalState.QUEUE) {
-                        QueueInlineView(
+                        QueueV2(
                             navController = navController,
                             playerBottomSheetState = state,
                             modifier = Modifier.fillMaxSize()
@@ -1271,7 +1302,6 @@ private fun PlayerV2Portrait(
     coverResolution: CoverResolution,
     showPlayerThumbnailShadow: Boolean,
     playerThumbnailShadowElevation: Float,
-    hidePlayerThumbnail: Boolean,
     adaptivePrimary: Color,
     adaptiveSecondary: Color,
     adaptiveSurface: Color,
@@ -1297,7 +1327,6 @@ private fun PlayerV2Portrait(
                 .padding(top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding())
                 .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding())
         ) {
-            // Drag handle pill at the top: tapping it collapses the sheet immediately
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1351,19 +1380,7 @@ private fun PlayerV2Portrait(
                                         onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
                                     )
                             ) {
-                                if (hidePlayerThumbnail) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.MusicNote,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(72.dp),
-                                            tint = adaptivePrimary.copy(alpha = 0.5f)
-                                        )
-                                    }
-                                } else if (mediaMetadata?.isLocal == true) {
+                                if (mediaMetadata?.isLocal == true) {
                                     AsyncImageLocal(
                                         image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, false) },
                                         contentDescription = null,
@@ -1419,9 +1436,7 @@ private fun PlayerV2Portrait(
                                     )
                                 }
 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
@@ -1488,19 +1503,7 @@ private fun PlayerV2Portrait(
                                         .clip(RoundedCornerShape(miniRadius))
                                         .clickable { onPlayerStateChange(PlayerInternalState.COVER) }
                                 ) {
-                                    if (hidePlayerThumbnail) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.MusicNote,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(32.dp),
-                                                tint = adaptivePrimary.copy(alpha = 0.5f)
-                                            )
-                                        }
-                                    } else if (mediaMetadata?.isLocal == true) {
+                                    if (mediaMetadata?.isLocal == true) {
                                         AsyncImageLocal(
                                             image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, true) },
                                             contentDescription = null,
@@ -1609,7 +1612,7 @@ private fun PlayerV2Portrait(
                                         }
                                     }
                                 } else {
-                                    QueueInlineView(
+                                    QueueV2(
                                         navController = navController,
                                         playerBottomSheetState = state,
                                         modifier = Modifier.fillMaxSize()
@@ -1621,7 +1624,6 @@ private fun PlayerV2Portrait(
                 }
             }
 
-            // Controls Section
             AnimatedVisibility(
                 visible = controlsVisible,
                 enter = fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
@@ -1735,20 +1737,6 @@ private fun PlayerV2Portrait(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Standard Interactive Volume Slider Bar
-                    var volumeSliderPosition by remember { mutableStateOf<Float?>(null) }
-                    val currentEffectiveVolume = volumeSliderPosition ?: (if (isMuted) 0f else playerVolume)
-                    val volumeInteractionSource = remember { MutableInteractionSource() }
-                    val isVolDragged by volumeInteractionSource.collectIsDraggedAsState()
-                    val isVolPressed by volumeInteractionSource.collectIsPressedAsState()
-                    val isVolActive = isVolDragged || isVolPressed
-
-                    val volHeight by animateDpAsState(
-                        targetValue = if (isVolActive) 12.dp else 6.dp,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                        label = "volHeight"
-                    )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -1773,22 +1761,17 @@ private fun PlayerV2Portrait(
                         Spacer(modifier = Modifier.width(16.dp))
 
                         Slider(
-                            value = currentEffectiveVolume.coerceIn(0f, 1f),
+                            value = (if (isMuted) 0f else playerVolume).coerceIn(0f, 1f),
                             onValueChange = { newValue ->
-                                volumeSliderPosition = newValue
                                 playerConnection.service.playerVolume.value = newValue
                                 if (newValue > 0f) isMuted = false
                             },
-                            onValueChangeFinished = {
-                                volumeSliderPosition = null
-                            },
                             valueRange = 0f..1f,
-                            interactionSource = volumeInteractionSource,
                             thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                             track = { sliderState ->
                                 PlayerSliderTrack(
                                     sliderState = sliderState,
-                                    trackHeight = volHeight,
+                                    trackHeight = 6.dp,
                                     colors = PlayerSliderColors.getSliderColors(
                                         activeColor = adaptivePrimary.copy(alpha = 0.8f),
                                         playerBackground = playerBackground,
@@ -1838,7 +1821,7 @@ private fun PlayerV2Portrait(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                                contentDescription = stringResource(R.string.queues_title),
+                                contentDescription = stringResource(R.string.queue),
                                 tint = if (isQueueActive) adaptivePrimary else adaptiveSecondary,
                                 modifier = Modifier.size(28.dp)
                             )
@@ -1874,92 +1857,6 @@ private fun PlayerV2Portrait(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun QueueInlineView(
-    navController: NavController,
-    playerBottomSheetState: BottomSheetState,
-    modifier: Modifier = Modifier
-) {
-    val playerConnection = LocalPlayerConnection.current ?: return
-    val queueWindows by playerConnection.queueWindows.collectAsState()
-    val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val lazyListState = rememberLazyListState()
-    val menuState = LocalMenuState.current
-
-    LaunchedEffect(currentWindowIndex) {
-        if (currentWindowIndex in queueWindows.indices) {
-            lazyListState.animateScrollToItem(currentWindowIndex)
-        }
-    }
-
-    LazyColumn(
-        state = lazyListState,
-        modifier = modifier.fillMaxSize()
-    ) {
-        itemsIndexed(
-            items = queueWindows,
-            key = { _, window -> window.uid.hashCode() }
-        ) { index, window ->
-            val metadata = window.mediaItem.metadata ?: return@itemsIndexed
-            val currentItem by rememberUpdatedState(window)
-
-            val dismissState = rememberSwipeToDismissBoxState(
-                confirmValueChange = { dismissValue ->
-                    if (dismissValue != SwipeToDismissBoxValue.Settled) {
-                        if (queueBoard.removeCurrentQueueSong(currentItem.firstPeriodIndex, playerConnection.service)) {
-                            playerConnection.player.removeMediaItem(currentItem.firstPeriodIndex)
-                        }
-                        true
-                    } else false
-                }
-            )
-
-            SwipeToDismissBox(
-                state = dismissState,
-                backgroundContent = {},
-                content = {
-                    MediaMetadataListItem(
-                        mediaMetadata = metadata,
-                        isActive = index == currentWindowIndex,
-                        isPlaying = isPlaying,
-                        trailingContent = {
-                            IconButton(
-                                onClick = {
-                                    menuState.show {
-                                        PlayerMenu(
-                                            mediaMetadata = metadata,
-                                            navController = navController,
-                                            playerBottomSheetState = playerBottomSheetState,
-                                            onDismiss = menuState::dismiss
-                                        )
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.MoreVert,
-                                    contentDescription = null
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (index == currentWindowIndex) {
-                                    playerConnection.player.togglePlayPause()
-                                } else {
-                                    playerConnection.player.seekToDefaultPosition(window.firstPeriodIndex)
-                                    playerConnection.player.prepare()
-                                    playerConnection.player.playWhenReady = true
-                                }
-                            }
-                    )
-                }
-            )
         }
     }
 }

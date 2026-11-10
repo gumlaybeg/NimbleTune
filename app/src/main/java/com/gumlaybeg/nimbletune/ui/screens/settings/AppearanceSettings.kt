@@ -95,7 +95,7 @@ fun AppearanceSettings(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(DynamicThemeKey, defaultValue = true)
-    val (playerBackground, onPlayerBackgroundChange) = rememberEnumPreference(key = PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.DEFAULT)
+    val (playerBackground, onPlayerBackgroundChange) = rememberEnumPreference(key = PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.LIVE_MESH)
     val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (enabledTabs, onEnabledTabsChange) = rememberPreference(EnabledTabsKey, defaultValue = DEFAULT_ENABLED_TABS)
@@ -179,6 +179,8 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.player_background_default)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.player_background_gradient)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                    PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                    PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
                 }
             }
         )
@@ -349,6 +351,8 @@ fun AppearanceSettings(
                                 PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.player_background_default)
                                 PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.player_background_gradient)
                                 PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                                PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
                             }
                         )
                     },
@@ -482,7 +486,7 @@ enum class DarkMode {
 }
 
 enum class PlayerBackgroundStyle {
-    DEFAULT, GRADIENT, BLUR
+    DEFAULT, GRADIENT, BLUR, GLOW_ANIMATED, LIVE_MESH
 }
 
 enum class NavigationTab {
