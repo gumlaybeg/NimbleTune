@@ -67,13 +67,6 @@ import com.gumlaybeg.nimbletune.constants.AudioQuality
 import com.gumlaybeg.nimbletune.constants.AudioQualityKey
 import com.gumlaybeg.nimbletune.constants.AutoLoadMoreKey
 import com.gumlaybeg.nimbletune.constants.KeepAliveKey
-import com.gumlaybeg.nimbletune.constants.LastPosKey
-import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleLike
-import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleRepeatMode
-import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleShuffle
-import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleStartRadio
-import com.gumlaybeg.nimbletune.constants.PauseListenHistoryKey
-import com.gumlaybeg.nimbletune.constants.PauseRemoteListenHistoryKey
 import com.gumlaybeg.nimbletune.constants.PersistentQueueKey
 import com.gumlaybeg.nimbletune.constants.PlayerVolumeKey
 import com.gumlaybeg.nimbletune.constants.RepeatModeKey
@@ -264,23 +257,40 @@ class MusicService : MediaLibraryService(),
 
                         var currentCause: Throwable? = error
                         var isHttp403 = false
+                        var isCacheOrParsingError = false
                         while (currentCause != null) {
                             if ((currentCause as? HttpDataSource.InvalidResponseCodeException)?.responseCode == 403 ||
                                 currentCause.message?.contains("403") == true) {
                                 isHttp403 = true
-                                break
+                            }
+                            if (currentCause is java.io.EOFException || currentCause.message?.contains("cache", ignoreCase = true) == true) {
+                                isCacheOrParsingError = true
                             }
                             currentCause = currentCause.cause
                         }
                         val is403OrStreamError = isHttp403
+                                || isCacheOrParsingError
                                 || error.errorCode == 2004
                                 || error.errorCode == 2000
+                                || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
 
                         if (is403OrStreamError) {
                             val currentMediaItem = player.currentMediaItem
                             val mediaId = currentMediaItem?.mediaId
                             if (mediaId != null) {
                                 songUrlCache.remove(mediaId)
+
+                                // Automatically detect and clear corrupted or incomplete playback cache
+                                if (isCacheOrParsingError || 
+                                    error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                                    error.errorCode == 2000) {
+                                    try {
+                                        downloadCache.removeResource(mediaId)
+                                        Log.d("MusicService", "Cleared corrupted/incomplete cache for: $mediaId")
+                                    } catch (e: Exception) {
+                                        Timber.tag("MusicService").e(e, "Failed to remove corrupted cache")
+                                    }
+                                }
                             }
 
                             if (currentMediaItem != null && consecutivePlaybackErr < MAX_CONSECUTIVE_ERR) {
