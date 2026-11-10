@@ -36,10 +36,12 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -59,6 +61,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.DefaultMediaDescriptionAdapter
 import androidx.media3.ui.PlayerNotificationManager
+import com.google.common.util.concurrent.MoreExecutors
 import com.gumlaybeg.nimbletune.MainActivity
 import com.gumlaybeg.nimbletune.R
 import com.gumlaybeg.nimbletune.constants.AudioNormalizationKey
@@ -67,12 +70,20 @@ import com.gumlaybeg.nimbletune.constants.AudioQuality
 import com.gumlaybeg.nimbletune.constants.AudioQualityKey
 import com.gumlaybeg.nimbletune.constants.AutoLoadMoreKey
 import com.gumlaybeg.nimbletune.constants.KeepAliveKey
+import com.gumlaybeg.nimbletune.constants.LastPosKey
+import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleLike
+import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleRepeatMode
+import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleShuffle
+import com.gumlaybeg.nimbletune.constants.MediaSessionConstants.CommandToggleStartRadio
+import com.gumlaybeg.nimbletune.constants.PauseListenHistoryKey
+import com.gumlaybeg.nimbletune.constants.PauseRemoteListenHistoryKey
 import com.gumlaybeg.nimbletune.constants.PersistentQueueKey
 import com.gumlaybeg.nimbletune.constants.PlayerVolumeKey
 import com.gumlaybeg.nimbletune.constants.RepeatModeKey
 import com.gumlaybeg.nimbletune.constants.ShowLyricsKey
 import com.gumlaybeg.nimbletune.constants.SkipOnErrorKey
 import com.gumlaybeg.nimbletune.constants.SkipSilenceKey
+import com.gumlaybeg.nimbletune.constants.StopMusicOnTaskClearKey
 import com.gumlaybeg.nimbletune.constants.minPlaybackDurKey
 import com.gumlaybeg.nimbletune.db.MusicDatabase
 import com.gumlaybeg.nimbletune.db.entities.Event
@@ -100,7 +111,6 @@ import com.gumlaybeg.nimbletune.utils.dataStore
 import com.gumlaybeg.nimbletune.utils.enumPreference
 import com.gumlaybeg.nimbletune.utils.get
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.google.common.util.concurrent.MoreExecutors
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
@@ -125,7 +135,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.io.File
 import java.net.ConnectException
@@ -133,7 +142,6 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.time.LocalDateTime
 import javax.inject.Inject
-import kotlin.collections.map
 import kotlin.math.min
 import kotlin.math.pow
 
@@ -171,7 +179,7 @@ class MusicService : MediaLibraryService(),
     var queuePlaylistId: String? = null
     private var lastMediaItemIndex = -1
 
-    val currentMediaMetadata = MutableStateFlow<com.gumlaybeg.nimbletune.models.MediaMetadata?>(null)
+    val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
 
     private val currentSong = currentMediaMetadata.flatMapLatest { mediaMetadata ->
         database.song(mediaMetadata?.id)
@@ -257,38 +265,55 @@ class MusicService : MediaLibraryService(),
 
                         var currentCause: Throwable? = error
                         var isHttp403 = false
-                        var isCacheOrParsingError = false
+                        var isCacheException = false
                         while (currentCause != null) {
                             if ((currentCause as? HttpDataSource.InvalidResponseCodeException)?.responseCode == 403 ||
                                 currentCause.message?.contains("403") == true) {
                                 isHttp403 = true
                             }
-                            if (currentCause is java.io.EOFException || currentCause.message?.contains("cache", ignoreCase = true) == true) {
-                                isCacheOrParsingError = true
+                            if (currentCause is Cache.CacheException ||
+                                currentCause.message?.contains("cache", ignoreCase = true) == true ||
+                                currentCause.message?.contains("corrupt", ignoreCase = true) == true) {
+                                isCacheException = true
                             }
                             currentCause = currentCause.cause
                         }
-                        val is403OrStreamError = isHttp403
-                                || isCacheOrParsingError
+
+                        val currentMediaItem = player.currentMediaItem
+                        val mediaId = currentMediaItem?.mediaId
+                        val hasCachedData = mediaId != null && try {
+                            !downloadCache.getCachedSpans(mediaId).isNullOrEmpty()
+                        } catch (_: Exception) {
+                            false
+                        }
+
+                        val isCorruptionOrMalformedError = error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
+                                || error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED
+                                || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+                                || error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
+                                || error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
+                                || error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE
+
+                        val isCacheOrStreamError = isHttp403
+                                || isCacheException
+                                || isCorruptionOrMalformedError
+                                || (hasCachedData && (error.errorCode == 2000 || error.errorCode == 2004))
                                 || error.errorCode == 2004
                                 || error.errorCode == 2000
-                                || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
 
-                        if (is403OrStreamError) {
-                            val currentMediaItem = player.currentMediaItem
-                            val mediaId = currentMediaItem?.mediaId
+                        if (isCacheOrStreamError) {
                             if (mediaId != null) {
                                 songUrlCache.remove(mediaId)
-
-                                // Automatically detect and clear corrupted or incomplete playback cache
-                                if (isCacheOrParsingError || 
-                                    error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
-                                    error.errorCode == 2000) {
+                                // Purge corrupted or incomplete cache so it will be fetched cleanly from network
+                                if (hasCachedData || isCacheException || isCorruptionOrMalformedError) {
                                     try {
+                                        Log.w("MusicService", "[$mediaId] Purging corrupted or incomplete playback cache after error (${error.errorCode})")
                                         downloadCache.removeResource(mediaId)
-                                        Log.d("MusicService", "Cleared corrupted/incomplete cache for: $mediaId")
+                                        scope.launch(Dispatchers.IO) {
+                                            database.updateDownloadStatus(mediaId, null)
+                                        }
                                     } catch (e: Exception) {
-                                        Timber.tag("MusicService").e(e, "Failed to remove corrupted cache")
+                                        Log.e("MusicService", "[$mediaId] Failed to remove cache", e)
                                     }
                                 }
                             }
@@ -296,9 +321,15 @@ class MusicService : MediaLibraryService(),
                             if (currentMediaItem != null && consecutivePlaybackErr < MAX_CONSECUTIVE_ERR) {
                                 consecutivePlaybackErr++
 
+                                val message = if (hasCachedData || isCacheException || isCorruptionOrMalformedError) {
+                                    "Cache corrupted/incomplete, re-fetching... ($consecutivePlaybackErr/$MAX_CONSECUTIVE_ERR)"
+                                } else {
+                                    "Stream error, refreshing... ($consecutivePlaybackErr/$MAX_CONSECUTIVE_ERR)"
+                                }
+
                                 Toast.makeText(
                                     this@MusicService,
-                                    "Stream error, refreshing... ($consecutivePlaybackErr/$MAX_CONSECUTIVE_ERR)",
+                                    message,
                                     Toast.LENGTH_SHORT
                                 ).show()
 
@@ -346,7 +377,7 @@ class MusicService : MediaLibraryService(),
                                 } else {
                                     stopOnError()
                                 }
-                                
+
                                 Toast.makeText(
                                     this@MusicService,
                                     "Error: ${error.message ?: "Playback failed"} (${error.errorCode})",
@@ -388,8 +419,7 @@ class MusicService : MediaLibraryService(),
                             }
                         }
 
-                        // this absolute eye sore detects if we loop back to the beginning of queue, when shuffle AND repeat all
-                        // no, when repeat mode is on, player does not "STATE_ENDED"
+                        // Loop back to beginning of queue when shuffle AND repeat all
                         if (player.currentMediaItemIndex == 0 && lastMediaItemIndex == player.mediaItemCount - 1 &&
                             (reason == MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == MEDIA_ITEM_TRANSITION_REASON_SEEK) &&
                             isShuffleEnabled.value && player.repeatMode == REPEAT_MODE_ALL
@@ -505,7 +535,6 @@ class MusicService : MediaLibraryService(),
             }.build()
         )
 
-
         playerNotificationManager = PlayerNotificationManager.Builder(this, NOTIFICATION_ID, CHANNEL_ID)
             .setNotificationListener(object : PlayerNotificationManager.NotificationListener {
                 override fun onNotificationPosted(notificationId: Int, notification: Notification, ongoing: Boolean) {
@@ -563,12 +592,6 @@ class MusicService : MediaLibraryService(),
     }
 
     fun skipOnError() {
-        /**
-         * Auto skip to the next media item on error.
-         *
-         * To prevent a "runaway diesel engine" scenario, force the user to take action after
-         * too many errors come up too quickly. Pause to show player "stopped" state
-         */
         consecutivePlaybackErr++
         val nextWindowIndex = player.nextMediaItemIndex
 
@@ -608,7 +631,6 @@ class MusicService : MediaLibraryService(),
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
-        // do not replace the object. Can lead to entire queue being deleted even though it is supposed to be saved already
         queueBoard.initialized = false
     }
 
@@ -689,15 +711,6 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    /**
-     * Play a queue.
-     *
-     * @param queue Queue to play.
-     * @param playWhenReady
-     * @param replace Replace media items instead of the underlying logic
-     * @param title Title override for the queue. If this value us unspecified, this method takes the value from queue.
-     * If both are unspecified, the title will default to "Queue".
-     */
     fun playQueue(
         queue: Queue,
         playWhenReady: Boolean = true,
@@ -714,15 +727,12 @@ class MusicService : MediaLibraryService(),
 
         CoroutineScope(Dispatchers.Main).launch {
             val initialStatus = withContext(Dispatchers.IO) { queue.getInitialStatus() }
-            if (queueTitle == null && initialStatus.title != null) { // do not find a title if an override is provided
+            if (queueTitle == null && initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
             val items = ArrayList<MediaMetadata>()
             val preloadItem = queue.preloadItem
 
-            // print out queue
-//            println("-----------------------------")
-//            initialStatus.items.map { println(it.title) }
             if (initialStatus.items.isEmpty()) return@launch
             if (preloadItem != null) {
                 items.add(preloadItem)
@@ -746,13 +756,8 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    /**
-     * Add items to queue, right after current playing item
-     */
     fun enqueueNext(items: List<MediaItem>) {
         if (!queueBoard.initialized) {
-
-            // when enqueuing next when player isn't active, play as a new song
             if (items.isNotEmpty()) {
                 CoroutineScope(Dispatchers.Main).launch {
                     playQueue(
@@ -764,17 +769,12 @@ class MusicService : MediaLibraryService(),
                 }
             }
         } else {
-            // enqueue next
             queueBoard.getCurrentQueue()?.let {
                 queueBoard.addSongsToQueue(it, player.currentMediaItemIndex + 1, items.mapNotNull { it.metadata }, this)
             }
         }
     }
 
-
-    /**
-     * Add items to end of current queue
-     */
     fun enqueueEnd(items: List<MediaItem>) {
         queueBoard.enqueueEnd(items.mapNotNull { it.metadata }, this)
     }
@@ -883,7 +883,7 @@ class MusicService : MediaLibraryService(),
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
 
-            // find a better way to detect local files later...
+            // Local files
             if (mediaId.startsWith("LA")) {
                 val songPath = runBlocking(Dispatchers.IO) {
                     database.song(mediaId).firstOrNull()?.song?.localPath
@@ -899,24 +899,62 @@ class MusicService : MediaLibraryService(),
                 return@Factory dataSpec.withUri(Uri.fromFile(File(songPath)))
             }
 
-            if (downloadCache.isCached(mediaId, dataSpec.position, if (dataSpec.length >= 0) dataSpec.length else 1)) {
+            // Verify playback cache completeness and integrity before serving from cache
+            var isCacheValidAndComplete = false
+            try {
+                val cachedSpans = downloadCache.getCachedSpans(mediaId)
+                if (!cachedSpans.isNullOrEmpty()) {
+                    val contentMetadata = downloadCache.getContentMetadata(mediaId)
+                    val metadataLength = ContentMetadata.getContentLength(contentMetadata)
+                    val playedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
+                    val expectedLength = if (metadataLength > 0) metadataLength else (playedFormat?.contentLength ?: -1L)
+                    val totalCachedBytes = downloadCache.getCachedBytes(mediaId, 0, Long.MAX_VALUE)
+
+                    // Check for corrupted span files (missing file, 0-byte file, etc.)
+                    val hasCorruptSpan = cachedSpans.any { span ->
+                        val file = span.file
+                        file == null || !file.exists() || file.length() <= 0L
+                    }
+
+                    if (hasCorruptSpan || totalCachedBytes <= 0L) {
+                        Log.w("MusicService", "[$mediaId] Corrupted playback cache detected (corrupted spans or $totalCachedBytes bytes). Purging cache and fetching again.")
+                        downloadCache.removeResource(mediaId)
+                        scope.launch(Dispatchers.IO) { database.updateDownloadStatus(mediaId, null) }
+                    } else if (expectedLength > 0 && (totalCachedBytes < expectedLength || !downloadCache.isCached(mediaId, 0, expectedLength))) {
+                        // Incomplete cache: Not all bytes are present, meaning raw dataSpec cannot be played without a valid upstream stream URL
+                        Log.w("MusicService", "[$mediaId] Incomplete playback cache detected ($totalCachedBytes / $expectedLength bytes). Purging cache and fetching again.")
+                        downloadCache.removeResource(mediaId)
+                        scope.launch(Dispatchers.IO) { database.updateDownloadStatus(mediaId, null) }
+                    } else if (expectedLength > 0 && downloadCache.isCached(mediaId, 0, expectedLength)) {
+                        isCacheValidAndComplete = true
+                    } else if (dataSpec.length > 0 && downloadCache.isCached(mediaId, dataSpec.position, dataSpec.length)) {
+                        isCacheValidAndComplete = true
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MusicService", "[$mediaId] Error checking playback cache integrity, purging cache", e)
+                try {
+                    downloadCache.removeResource(mediaId)
+                    scope.launch(Dispatchers.IO) { database.updateDownloadStatus(mediaId, null) }
+                } catch (_: Exception) {}
+            }
+
+            if (isCacheValidAndComplete) {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 return@Factory dataSpec
             }
 
-            // Check cache with buffer time (refresh 30 seconds before expiry to prevent 2004 errors)
+            // Check URL cache with buffer time (refresh 30 seconds before expiry to prevent 2004 errors)
             val currentTime = System.currentTimeMillis()
             val bufferTime = 30000L // 30 seconds buffer
             songUrlCache[mediaId]?.takeIf { it.second > currentTime + bufferTime }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 return@Factory dataSpec.withUri(it.first.toUri())
             }
-            
-            // Clear expired or soon-to-expire cache entry to force refresh
+
+            // Clear expired or soon-to-expire cache entry to force fresh fetch
             songUrlCache.remove(mediaId)
 
-            // Check whether format exists so that users from older version can view format details
-            // There may be inconsistent between the downloaded file and the displayed info if user change audio quality frequently
             val playedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
             val playbackData = runBlocking(Dispatchers.IO) {
                 YTPlayerUtils.playerResponseForPlayback(
@@ -973,16 +1011,14 @@ class MusicService : MediaLibraryService(),
 
             val streamUrl = playbackData.streamUrl
             val expiryTime = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
-            
-            // Validate stream URL before caching to prevent error 2004
+
             if (playbackData.streamExpiresInSeconds < 60) {
-                // Stream expires in less than 60 seconds - this is suspicious
                 Log.w("MusicService", "[$mediaId] Stream expires very soon: ${playbackData.streamExpiresInSeconds}s")
             }
-            
+
             songUrlCache[mediaId] = streamUrl to expiryTime
             Log.d("MusicService", "[$mediaId] Cached stream URL, expires in ${playbackData.streamExpiresInSeconds}s")
-            
+
             dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
         }
     }
@@ -993,7 +1029,6 @@ class MusicService : MediaLibraryService(),
         ): AudioSink {
             return DefaultAudioSink.Builder(this@MusicService)
                 .setEnableFloatOutput(enableFloatOutput)
-
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
@@ -1014,15 +1049,11 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    /**
-     * Shuffles the queue
-     */
     fun triggerShuffle() {
         val oldIndex = player.currentMediaItemIndex
         queueBoard.setCurrQueuePosIndex(oldIndex)
         val currentQueue = queueBoard.getCurrentQueue() ?: return
 
-        // shuffle and update player playlist
         if (!currentQueue.shuffled) {
             queueBoard.shuffleCurrent(this)
         } else {
@@ -1037,14 +1068,12 @@ class MusicService : MediaLibraryService(),
         if (eventTime.timeline.isEmpty || eventTime.windowIndex < 0 || eventTime.windowIndex >= eventTime.timeline.windowCount) return
         val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem ?: return
         var minPlaybackDur = (dataStore.get(minPlaybackDurKey, 30).toFloat() / 100)
-        // ensure within bounds
         if (minPlaybackDur >= 1f) {
-            minPlaybackDur = 0.99f // Ehhh 99 is good enough to avoid any rounding errors
+            minPlaybackDur = 0.99f
         } else if (minPlaybackDur < 0.01f) {
-            minPlaybackDur = 0.01f // Still want "spam skipping" to not count as plays
+            minPlaybackDur = 0.01f
         }
 
-//        println("Playback ratio: ${playbackStats.totalPlayTimeMs.toFloat() / ((mediaItem.metadata?.duration?.times(1000)) ?: -1)} Min threshold: $minPlaybackDur")
         if (playbackStats.totalPlayTimeMs.toFloat() / ((mediaItem.metadata?.duration?.times(1000))
                 ?: -1) >= minPlaybackDur
             && !dataStore.get(PauseListenHistoryKey, false)
@@ -1064,7 +1093,6 @@ class MusicService : MediaLibraryService(),
                 }
             }
 
-            // TODO: support playlist id
             if (mediaItem.metadata?.isLocal != true && !dataStore.get(PauseRemoteListenHistoryKey, false)) {
                 CoroutineScope(Dispatchers.IO).launch {
                     val playbackUrl = database.format(mediaItem.mediaId).first()?.playbackTrackingUrl
@@ -1085,14 +1113,12 @@ class MusicService : MediaLibraryService(),
     fun saveQueueToDisk() {
         val data = queueBoard.getAllQueues()
         CoroutineScope(Dispatchers.IO).launch {
-            // db on main thread crash, use Dispatchers.IO
             database.rewriteAllQueues(data)
         }
 
         val pos = player.currentPosition
 
-       runBlocking {
-           // async issues, run blocking
+        runBlocking {
             dataStore.edit { settings ->
                 settings[LastPosKey] = pos
             }
@@ -1100,7 +1126,7 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        // we handle notification manually
+        // Handled manually
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
