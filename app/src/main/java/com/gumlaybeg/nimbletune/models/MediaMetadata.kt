@@ -3,7 +3,7 @@ package com.gumlaybeg.nimbletune.models
 import androidx.compose.runtime.Immutable
 import com.gumlaybeg.nimbletune.db.entities.*
 import com.gumlaybeg.nimbletune.ui.utils.resize
-import com.zionhuang.innertube.models.SongItem
+import com.music.innertube.models.SongItem
 import java.io.Serializable
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -18,15 +18,14 @@ data class MediaMetadata(
     val album: Album? = null,
     val genre: List<Genre>?,
     val year: Int? = null,
-    private val date: LocalDateTime? = null, // ID3 tag property
-    private val dateModified: LocalDateTime? = null, // file property
-    val inLibrary: LocalDateTime? = null, // doubles as "date added"
+    private val date: LocalDateTime? = null,
+    private val dateModified: LocalDateTime? = null,
+    val inLibrary: LocalDateTime? = null,
     val setVideoId: String? = null,
     val isLocal: Boolean = false,
     val localPath: String? = null,
     val liked: Boolean = false,
-    val composeUidWorkaround: Double = Math.random(), // compose will crash without this hax
-
+    val composeUidWorkaround: Double = Math.random(),
     var shuffleIndex: Int = -1
 ) : Serializable {
     data class Artist(
@@ -63,34 +62,21 @@ data class MediaMetadata(
         localPath = localPath
     )
 
-    /**
-     * Returns a full date string. If no full date is present, returns the year.
-     * This is the song's tag's date/year, NOT dateModified.
-     */
     fun getDateString(): String? {
         return date?.toLocalDate()?.toString()
             ?: if (year != null) {
-                return year.toString()
+                year.toString()
             } else {
-                return null
+                null
             }
     }
 
-    /**
-     * Returns a full date modified string
-     */
     fun getDateModifiedString(): String? {
         return dateModified?.toLocalDate()?.toString()
     }
 
-    /**
-     * Get the value of the date released in Epoch Seconds
-     */
     fun getDateLong(): Long? = date?.toEpochSecond(ZoneOffset.UTC)
 
-    /**
-     * Get the value of the date modified in Epoch Seconds
-     */
     fun getDateModifiedLong(): Long? = dateModified?.toEpochSecond(ZoneOffset.UTC)
 }
 
@@ -116,7 +102,6 @@ fun Song.toMediaMetadata() = MediaMetadata(
         MediaMetadata.Album(
             id = albumId,
             title = song.albumName.orEmpty(),
-            // no possible local albums somehow
         )
     },
     genre = genre?.map {

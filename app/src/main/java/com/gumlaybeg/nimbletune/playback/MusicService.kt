@@ -108,9 +108,9 @@ import com.gumlaybeg.nimbletune.utils.enumPreference
 import com.gumlaybeg.nimbletune.utils.get
 import com.gumlaybeg.nimbletune.utils.reportException
 import com.google.common.util.concurrent.MoreExecutors
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.SongItem
-import com.zionhuang.innertube.models.WatchEndpoint
+import com.music.innertube.YouTube
+import com.music.innertube.models.SongItem
+import com.music.innertube.models.WatchEndpoint
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

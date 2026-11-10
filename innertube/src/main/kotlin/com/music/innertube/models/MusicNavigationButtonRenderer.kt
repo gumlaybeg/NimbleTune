@@ -1,0 +1,25 @@
+/**
+ * vivimusic Project (C) 2026
+ * Licensed under GPL-3.0 | See git history for contributors
+ */
+package com.music.innertube.models
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MusicNavigationButtonRenderer(
+    val buttonText: Runs,
+    val solid: Solid?,
+    val iconStyle: IconStyle?,
+    val clickCommand: NavigationEndpoint,
+) {
+    @Serializable
+    data class Solid(
+        val leftStripeColor: Long,
+    )
+
+    @Serializable
+    data class IconStyle(
+        val icon: Icon,
+    )
+}

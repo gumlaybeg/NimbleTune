@@ -1,0 +1,44 @@
+/**
+ * vivimusic Project (C) 2026
+ * Licensed under GPL-3.0 | See git history for contributors
+ */
+package com.music.innertube.models
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class NavigationEndpoint(
+    val watchEndpoint: WatchEndpoint? = null,
+    val watchPlaylistEndpoint: WatchEndpoint? = null,
+    val browseEndpoint: BrowseEndpoint? = null,
+    val searchEndpoint: SearchEndpoint? = null,
+    val queueAddEndpoint: QueueAddEndpoint? = null,
+    val shareEntityEndpoint: ShareEntityEndpoint? = null,
+    val feedbackEndpoint: FeedbackEndpoint? = null,
+    val urlEndpoint: UrlEndpoint? = null,
+    val continuationCommand: ContinuationCommand? = null,
+) {
+    @Serializable
+    data class ContinuationCommand(
+        val token: String? = null,
+    )
+
+    val endpoint: Endpoint?
+        get() =
+            watchEndpoint
+                ?: watchPlaylistEndpoint
+                ?: browseEndpoint
+                ?: searchEndpoint
+                ?: queueAddEndpoint
+                ?: shareEntityEndpoint
+
+    val anyWatchEndpoint: WatchEndpoint?
+        get() = watchEndpoint
+            ?: watchPlaylistEndpoint
+
+    val musicVideoType: String?
+        get() = anyWatchEndpoint
+            ?.watchEndpointMusicSupportedConfigs
+            ?.watchEndpointMusicConfig
+            ?.musicVideoType
+}

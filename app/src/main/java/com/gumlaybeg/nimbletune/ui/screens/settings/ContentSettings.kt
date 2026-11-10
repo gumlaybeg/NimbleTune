@@ -70,8 +70,8 @@ import com.gumlaybeg.nimbletune.ui.component.TextFieldDialog
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
 import com.gumlaybeg.nimbletune.utils.rememberPreference
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.utils.parseCookieString
+import com.music.innertube.YouTube
+import com.music.innertube.utils.parseCookieString
 import java.net.Proxy
 
 @SuppressLint("PrivateResource")

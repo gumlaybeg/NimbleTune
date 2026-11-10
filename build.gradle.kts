@@ -1,6 +1,7 @@
 plugins {
-    alias(libs.plugins.hilt) apply(false)
-    alias(libs.plugins.kotlin.ksp) apply(false)
+    alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.kotlin.ksp) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
 }
 
 buildscript {
@@ -16,6 +17,7 @@ buildscript {
     dependencies {
         classpath(libs.gradle)
         classpath(kotlin("gradle-plugin", libs.versions.kotlin.get()))
+        classpath("org.jetbrains.kotlin:kotlin-serialization:${libs.versions.kotlin.get()}")
     }
 }
 

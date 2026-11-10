@@ -3,7 +3,7 @@ package com.gumlaybeg.nimbletune.extensions
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
-import com.zionhuang.innertube.models.SongItem
+import com.music.innertube.models.SongItem
 import com.gumlaybeg.nimbletune.db.entities.Song
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.models.toMediaMetadata

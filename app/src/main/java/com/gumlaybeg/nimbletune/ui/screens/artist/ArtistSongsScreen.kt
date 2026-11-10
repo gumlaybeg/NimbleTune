@@ -59,7 +59,7 @@ import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
 import com.gumlaybeg.nimbletune.utils.rememberPreference
 import com.gumlaybeg.nimbletune.viewmodels.ArtistSongsViewModel
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -22,7 +22,7 @@ import com.gumlaybeg.nimbletune.db.entities.ArtistEntity
 import com.gumlaybeg.nimbletune.db.entities.Song
 import com.gumlaybeg.nimbletune.db.entities.SongAlbumMap
 import com.gumlaybeg.nimbletune.extensions.reversed
-import com.zionhuang.innertube.models.AlbumItem
+import com.music.innertube.models.AlbumItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

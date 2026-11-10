@@ -1,7 +1,7 @@
 package com.gumlaybeg.nimbletune.lyrics
 
 import android.content.Context
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 
 object YouTubeSubtitleLyricsProvider : LyricsProvider {
     override val name = "YouTube Subtitle"

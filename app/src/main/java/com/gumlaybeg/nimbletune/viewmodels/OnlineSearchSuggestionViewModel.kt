@@ -2,8 +2,8 @@ package com.gumlaybeg.nimbletune.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.YTItem
+import com.music.innertube.YouTube
+import com.music.innertube.models.YTItem
 import com.gumlaybeg.nimbletune.db.MusicDatabase
 import com.gumlaybeg.nimbletune.db.entities.SearchHistory
 import dagger.hilt.android.lifecycle.HiltViewModel

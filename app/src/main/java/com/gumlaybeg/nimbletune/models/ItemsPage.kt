@@ -1,6 +1,6 @@
 package com.gumlaybeg.nimbletune.models
 
-import com.zionhuang.innertube.models.YTItem
+import com.music.innertube.models.YTItem
 
 data class ItemsPage(
     val items: List<YTItem>,

@@ -55,10 +55,10 @@ import com.gumlaybeg.nimbletune.ui.component.DownloadGridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.YouTubeListItem
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.PlaylistItem
-import com.zionhuang.innertube.models.SongItem
-import com.zionhuang.innertube.utils.completed
+import com.music.innertube.YouTube
+import com.music.innertube.models.PlaylistItem
+import com.music.innertube.models.SongItem
+import com.music.innertube.utils.completed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

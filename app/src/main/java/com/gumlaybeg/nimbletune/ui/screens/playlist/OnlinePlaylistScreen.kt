@@ -110,7 +110,7 @@ import com.gumlaybeg.nimbletune.ui.menu.YouTubePlaylistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubeSongMenu
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.viewmodels.OnlinePlaylistViewModel
-import com.zionhuang.innertube.models.SongItem
+import com.music.innertube.models.SongItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

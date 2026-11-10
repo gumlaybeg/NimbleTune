@@ -37,12 +37,12 @@ import com.gumlaybeg.nimbletune.extensions.toSQLiteQuery
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.models.MultiQueueObject
 import com.gumlaybeg.nimbletune.models.toMediaMetadata
-import com.zionhuang.innertube.models.AlbumItem
-import com.zionhuang.innertube.models.ArtistItem
-import com.zionhuang.innertube.models.PlaylistItem
-import com.zionhuang.innertube.models.SongItem
-import com.zionhuang.innertube.models.YTItem
-import com.zionhuang.innertube.pages.AlbumPage
+import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
+import com.music.innertube.models.SongItem
+import com.music.innertube.models.YTItem
+import com.music.innertube.pages.AlbumPage
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -309,9 +309,6 @@ AND NOT EXISTS (
         raw("PRAGMA wal_checkpoint(FULL)".toSQLiteQuery())
     }
 
-    /**
-     * Queueboard
-     */
     @Transaction
     fun saveQueue(mq: MultiQueueObject) {
         if (mq.queue.isEmpty()) {
@@ -330,12 +327,10 @@ AND NOT EXISTS (
         )
 
         deleteAllQueueSongs(mq.id)
-        // insert songs
 
-        // why does kotlin not have for i loop???
         var i = 0
         while (i < mq.getSize()) {
-            insert(mq.queue[i]) // make sure song exists
+            insert(mq.queue[i])
             insert(
                 QueueSongMap(
                     queueId = mq.id,
@@ -344,13 +339,10 @@ AND NOT EXISTS (
                     shuffledIndex = mq.queue[i].shuffleIndex.toLong()
                 )
             )
-            i ++
+            i++
         }
     }
 
-    /**
-     * WARNING: This removes all queue data and re-adds the queue. Did you mean to use updateQueue()?
-     */
     @Transaction
     fun rewriteQueue(mq: MultiQueueObject) {
         delete(
@@ -367,9 +359,6 @@ AND NOT EXISTS (
         saveQueue(mq)
     }
 
-    /**
-     * WARNING: This removes ALL queues and their data, and re-adds them. Did you mean to use rewriteQueue()?
-     */
     @Transaction
     fun rewriteAllQueues(queues: List<MultiQueueObject>) {
         deleteAllQueues()
@@ -439,9 +428,7 @@ AND NOT EXISTS (
                 )
             }
 
-            else -> {
-                // do nothing
-            }
+            else -> {}
         }
     }
 

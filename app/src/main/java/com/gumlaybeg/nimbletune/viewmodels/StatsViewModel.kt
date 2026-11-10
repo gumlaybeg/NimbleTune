@@ -2,7 +2,7 @@ package com.gumlaybeg.nimbletune.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import com.gumlaybeg.nimbletune.constants.StatPeriod
 import com.gumlaybeg.nimbletune.db.MusicDatabase
 import com.gumlaybeg.nimbletune.utils.reportException

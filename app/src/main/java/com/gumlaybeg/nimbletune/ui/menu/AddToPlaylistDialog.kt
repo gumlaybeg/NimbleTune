@@ -35,7 +35,7 @@ import com.gumlaybeg.nimbletune.ui.component.DefaultDialog
 import com.gumlaybeg.nimbletune.ui.component.ListDialog
 import com.gumlaybeg.nimbletune.ui.component.ListItem
 import com.gumlaybeg.nimbletune.ui.component.PlaylistListItem
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

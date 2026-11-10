@@ -19,7 +19,7 @@ import com.gumlaybeg.nimbletune.db.entities.Song
 import com.gumlaybeg.nimbletune.db.entities.SongArtistMap
 import com.gumlaybeg.nimbletune.extensions.reversed
 import com.gumlaybeg.nimbletune.ui.utils.resize
-import com.zionhuang.innertube.pages.ArtistPage
+import com.music.innertube.pages.ArtistPage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime

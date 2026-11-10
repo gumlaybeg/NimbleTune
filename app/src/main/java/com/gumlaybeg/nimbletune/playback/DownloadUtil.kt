@@ -24,7 +24,7 @@ import com.gumlaybeg.nimbletune.db.entities.SongEntity
 import com.gumlaybeg.nimbletune.di.DownloadCache
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.utils.enumPreference
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

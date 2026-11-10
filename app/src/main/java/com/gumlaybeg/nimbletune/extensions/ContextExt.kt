@@ -9,7 +9,7 @@ import com.gumlaybeg.nimbletune.constants.LikedAutoDownloadKey
 import com.gumlaybeg.nimbletune.constants.LikedAutodownloadMode
 import com.gumlaybeg.nimbletune.utils.dataStore
 import com.gumlaybeg.nimbletune.utils.get
-import com.zionhuang.innertube.utils.parseCookieString
+import com.music.innertube.utils.parseCookieString
 import kotlinx.coroutines.runBlocking
 
 fun Context.isSyncEnabled(): Boolean {

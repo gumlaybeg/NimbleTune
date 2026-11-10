@@ -131,7 +131,7 @@ import com.gumlaybeg.nimbletune.ui.screens.settings.NavigationTab
 import com.gumlaybeg.nimbletune.utils.decodeTabString
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
 import com.gumlaybeg.nimbletune.utils.rememberPreference
-import com.zionhuang.innertube.utils.parseCookieString
+import com.music.innertube.utils.parseCookieString
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 

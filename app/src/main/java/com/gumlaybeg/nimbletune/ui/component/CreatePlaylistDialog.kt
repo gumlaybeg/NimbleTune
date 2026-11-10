@@ -26,7 +26,7 @@ import com.gumlaybeg.nimbletune.LocalDatabase
 import com.gumlaybeg.nimbletune.R
 import com.gumlaybeg.nimbletune.db.entities.PlaylistEntity
 import com.gumlaybeg.nimbletune.extensions.isUserLoggedIn
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime

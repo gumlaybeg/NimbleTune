@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gumlaybeg.nimbletune.db.MusicDatabase
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.AlbumItem
+import com.music.innertube.YouTube
+import com.music.innertube.models.AlbumItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

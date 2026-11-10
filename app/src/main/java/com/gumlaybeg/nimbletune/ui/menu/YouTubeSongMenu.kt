@@ -69,8 +69,8 @@ import com.gumlaybeg.nimbletune.ui.component.ListDialog
 import com.gumlaybeg.nimbletune.ui.component.ListItem
 import com.gumlaybeg.nimbletune.utils.joinByBullet
 import com.gumlaybeg.nimbletune.utils.makeTimeString
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.SongItem
+import com.music.innertube.YouTube
+import com.music.innertube.models.SongItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

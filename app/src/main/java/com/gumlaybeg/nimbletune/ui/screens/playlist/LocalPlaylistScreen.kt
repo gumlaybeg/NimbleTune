@@ -120,9 +120,9 @@ import com.gumlaybeg.nimbletune.utils.makeTimeString
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
 import com.gumlaybeg.nimbletune.utils.rememberPreference
 import com.gumlaybeg.nimbletune.viewmodels.LocalPlaylistViewModel
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.SongItem
-import com.zionhuang.innertube.utils.completed
+import com.music.innertube.YouTube
+import com.music.innertube.models.SongItem
+import com.music.innertube.utils.completed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch

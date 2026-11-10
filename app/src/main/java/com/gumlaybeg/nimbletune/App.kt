@@ -15,8 +15,8 @@ import com.gumlaybeg.nimbletune.extensions.*
 import com.gumlaybeg.nimbletune.utils.dataStore
 import com.gumlaybeg.nimbletune.utils.get
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.YouTubeLocale
+import com.music.innertube.YouTube
+import com.music.innertube.models.YouTubeLocale
 import com.zionhuang.kugou.KuGou
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -36,11 +36,11 @@ class App : Application(), ImageLoaderFactory {
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
-        instance = this;
+        instance = this
         Timber.plant(Timber.DebugTree())
 
         val locale = Locale.getDefault()
-        val languageTag = locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*
+        val languageTag = locale.toLanguageTag().replace("-Hant", "")
         YouTube.locale = YouTubeLocale(
             gl = dataStore[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }
                 ?: locale.country.takeIf { it in CountryCodeToName }
@@ -76,7 +76,7 @@ class App : Application(), ImageLoaderFactory {
                 .distinctUntilChanged()
                 .collect { visitorData ->
                     YouTube.visitorData = visitorData
-                        ?.takeIf { it != "null" } // Previously visitorData was sometimes saved as "null" due to a bug
+                        ?.takeIf { it != "null" }
                         ?: YouTube.visitorData().onFailure {
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(this@App, "Failed to get visitorData.", LENGTH_SHORT).show()
@@ -95,15 +95,6 @@ class App : Application(), ImageLoaderFactory {
                 .distinctUntilChanged()
                 .collect { dataSyncId ->
                     YouTube.dataSyncId = dataSyncId?.let {
-                        /*
-                         * Workaround to avoid breaking older installations that have a dataSyncId
-                         * that contains "||" in it.
-                         * If the dataSyncId ends with "||" and contains only one id, then keep the
-                         * id before the "||".
-                         * If the dataSyncId contains "||" and is not at the end, then keep the
-                         * second id.
-                         * This is needed to keep using the same account as before.
-                         */
                         it.takeIf { !it.contains("||") }
                             ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
                             ?: it.substringAfter("||")
@@ -118,7 +109,6 @@ class App : Application(), ImageLoaderFactory {
                     try {
                         YouTube.cookie = cookie
                     } catch (e: Exception) {
-                        // we now allow user input now, here be the demons. This serves as a last ditch effort to avoid a crash loop
                         Timber.e("Could not parse cookie. Clearing existing cookie. %s", e.message)
                         forgetAccount(this@App)
                     }
@@ -129,7 +119,6 @@ class App : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader {
         val cacheSize = dataStore[MaxImageCacheSizeKey]
 
-        // will crash app if you set to 0 after cache starts being used
         if (cacheSize == 0) {
             return ImageLoader.Builder(this)
                 .crossfade(true)
@@ -140,16 +129,16 @@ class App : Application(), ImageLoaderFactory {
         }
 
         return ImageLoader.Builder(this)
-        .crossfade(true)
-        .respectCacheHeaders(false)
-        .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-        .diskCache(
-            DiskCache.Builder()
-                .directory(cacheDir.resolve("coil"))
-                .maxSizeBytes((cacheSize ?: 512) * 1024 * 1024L)
-                .build()
-        )
-        .build()
+            .crossfade(true)
+            .respectCacheHeaders(false)
+            .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            .diskCache(
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("coil"))
+                    .maxSizeBytes((cacheSize ?: 512) * 1024 * 1024L)
+                    .build()
+            )
+            .build()
     }
 
     companion object {

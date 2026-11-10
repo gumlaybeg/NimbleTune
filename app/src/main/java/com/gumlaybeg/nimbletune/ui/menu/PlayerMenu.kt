@@ -95,7 +95,7 @@ import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.ListDialog
 import com.gumlaybeg.nimbletune.ui.component.SleepTimerGridMenu
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive

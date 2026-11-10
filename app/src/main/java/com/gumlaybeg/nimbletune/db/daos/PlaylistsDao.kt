@@ -17,7 +17,7 @@ import com.gumlaybeg.nimbletune.db.entities.PlaylistEntity
 import com.gumlaybeg.nimbletune.db.entities.PlaylistSong
 import com.gumlaybeg.nimbletune.db.entities.PlaylistSongMap
 import com.gumlaybeg.nimbletune.extensions.reversed
-import com.zionhuang.innertube.models.PlaylistItem
+import com.music.innertube.models.PlaylistItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

@@ -1,7 +1,7 @@
 package com.gumlaybeg.nimbletune.playback.queues
 
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.WatchEndpoint
+import com.music.innertube.YouTube
+import com.music.innertube.models.WatchEndpoint
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.models.toMediaMetadata
 import kotlinx.coroutines.Dispatchers.IO

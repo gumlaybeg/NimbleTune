@@ -33,7 +33,7 @@ import com.gumlaybeg.nimbletune.ui.component.IconButton
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.rememberPreference
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

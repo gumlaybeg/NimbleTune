@@ -28,7 +28,7 @@ import com.gumlaybeg.nimbletune.playback.queues.YouTubeQueue
 import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.YouTubeListItem
-import com.zionhuang.innertube.models.ArtistItem
+import com.music.innertube.models.ArtistItem
 
 @Composable
 fun YouTubeArtistMenu(

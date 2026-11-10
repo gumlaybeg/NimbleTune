@@ -34,9 +34,9 @@ import com.gumlaybeg.nimbletune.ui.menu.YouTubeArtistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubePlaylistMenu
 import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.viewmodels.BrowseViewModel
-import com.zionhuang.innertube.models.AlbumItem
-import com.zionhuang.innertube.models.ArtistItem
-import com.zionhuang.innertube.models.PlaylistItem
+import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable

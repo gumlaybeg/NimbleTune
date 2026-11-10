@@ -1,8 +1,8 @@
 package com.gumlaybeg.nimbletune.lyrics
 
 import android.content.Context
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.WatchEndpoint
+import com.music.innertube.YouTube
+import com.music.innertube.models.WatchEndpoint
 
 object YouTubeLyricsProvider : LyricsProvider {
     override val name = "YouTube Music"

@@ -50,7 +50,7 @@ import com.gumlaybeg.nimbletune.utils.dataStore
 import com.gumlaybeg.nimbletune.utils.get
 import com.gumlaybeg.nimbletune.utils.reportException
 import com.gumlaybeg.nimbletune.utils.scanners.LocalMediaScanner.Companion.refreshLocal
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope

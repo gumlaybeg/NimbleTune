@@ -75,7 +75,7 @@ import com.gumlaybeg.nimbletune.ui.component.DownloadGridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.ListDialog
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime

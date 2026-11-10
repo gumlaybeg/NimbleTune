@@ -59,10 +59,10 @@ import com.gumlaybeg.nimbletune.ui.menu.YouTubeArtistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubePlaylistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubeSongMenu
 import com.gumlaybeg.nimbletune.viewmodels.OnlineSearchSuggestionViewModel
-import com.zionhuang.innertube.models.AlbumItem
-import com.zionhuang.innertube.models.ArtistItem
-import com.zionhuang.innertube.models.PlaylistItem
-import com.zionhuang.innertube.models.SongItem
+import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
+import com.music.innertube.models.SongItem
 import kotlinx.coroutines.flow.drop
 
 @Composable

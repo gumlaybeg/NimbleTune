@@ -19,8 +19,8 @@ import com.gumlaybeg.nimbletune.ui.menu.AlbumMenu
 import com.gumlaybeg.nimbletune.ui.menu.ArtistMenu
 import com.gumlaybeg.nimbletune.ui.menu.PlaylistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubePlaylistMenu
-import com.zionhuang.innertube.models.PlaylistItem
-import com.zionhuang.innertube.models.WatchEndpoint
+import com.music.innertube.models.PlaylistItem
+import com.music.innertube.models.WatchEndpoint
 import kotlinx.coroutines.CoroutineScope
 
 @Composable

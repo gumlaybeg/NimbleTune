@@ -84,7 +84,7 @@ import com.gumlaybeg.nimbletune.ui.component.TextFieldDialog
 import com.gumlaybeg.nimbletune.ui.utils.imageCache
 import com.gumlaybeg.nimbletune.utils.joinByBullet
 import com.gumlaybeg.nimbletune.utils.makeTimeString
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

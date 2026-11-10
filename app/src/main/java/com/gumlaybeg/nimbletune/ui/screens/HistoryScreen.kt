@@ -87,7 +87,7 @@ import com.gumlaybeg.nimbletune.ui.utils.backToMain
 import com.gumlaybeg.nimbletune.utils.rememberPreference
 import com.gumlaybeg.nimbletune.viewmodels.DateAgo
 import com.gumlaybeg.nimbletune.viewmodels.HistoryViewModel
-import com.zionhuang.innertube.utils.parseCookieString
+import com.music.innertube.utils.parseCookieString
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)

@@ -61,8 +61,8 @@ import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.PlaylistListItem
 import com.gumlaybeg.nimbletune.ui.component.TextFieldDialog
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.WatchEndpoint
+import com.music.innertube.YouTube
+import com.music.innertube.models.WatchEndpoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

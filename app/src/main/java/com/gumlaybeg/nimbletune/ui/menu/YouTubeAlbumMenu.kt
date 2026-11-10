@@ -60,8 +60,8 @@ import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.ListDialog
 import com.gumlaybeg.nimbletune.ui.component.YouTubeListItem
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.AlbumItem
+import com.music.innertube.YouTube
+import com.music.innertube.models.AlbumItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

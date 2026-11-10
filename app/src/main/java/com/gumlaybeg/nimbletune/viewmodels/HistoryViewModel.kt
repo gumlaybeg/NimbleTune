@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.gumlaybeg.nimbletune.constants.HistorySource
 import com.gumlaybeg.nimbletune.db.MusicDatabase
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.pages.HistoryPage
+import com.music.innertube.YouTube
+import com.music.innertube.pages.HistoryPage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -1,6 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -11,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.gumlaybeg.nimbletune"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.gumlaybeg.nimbletune"
@@ -21,6 +20,7 @@ android {
         versionName = "0.2.2.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -31,8 +31,6 @@ android {
         debug {
             applicationIdSuffix = ".debug"
         }
-
-        // userdebug is release builds without minify
         create("userdebug") {
             initWith(getByName("release"))
             isMinifyEnabled = false
@@ -45,14 +43,10 @@ android {
         buildConfig = true
     }
 
-// build variants and stuff
     splits {
         abi {
             isEnable = true
             reset()
-
-            // all common abis
-            // include("x86_64", "x86", "armeabi-v7a", "arm64-v8a") // universal
             isUniversalApk = false
         }
     }
@@ -60,7 +54,6 @@ android {
     flavorDimensions.add("abi")
 
     productFlavors {
-        // universal
         create("universal") {
             isDefault = true
             dimension = "abi"
@@ -68,14 +61,12 @@ android {
                 abiFilters.addAll(listOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a"))
             }
         }
-        // arm64 only
         create("arm64") {
             dimension = "abi"
             ndk {
                 abiFilters.add("arm64-v8a")
             }
         }
-        // x86_64 only
         create("x86_64") {
             dimension = "abi"
             ndk {
@@ -89,29 +80,27 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach { output ->
-                val outputFileName = "NimbleTune-${variant.versionName}-${variant.baseName}.apk"
-                output.outputFileName = outputFileName
+                output.outputFileName = "NimbleTune-${variant.versionName}-${variant.baseName}.apk"
             }
     }
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        jvmToolchain(17)
-    }
-    kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-        jvmTarget = "17"
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
-    // for IzzyOnDroid
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    kotlinOptions {
+        freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
+        jvmTarget = "21"
+    }
+
     dependenciesInfo {
-        // Disables dependency metadata when building APKs.
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
 
@@ -170,7 +159,6 @@ dependencies {
     implementation(projects.materialColorUtilities)
 
     implementation(libs.coil)
-
     implementation(libs.shimmer)
 
     implementation(libs.media3)
@@ -194,14 +182,8 @@ dependencies {
     coreLibraryDesugaring(libs.desugaring)
 
     implementation(libs.timber)
-
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
 
-    /*
-    "JitPack builds are broken with the latest CMake version.
-    Please download the [aar](https://github.com/Kyant0/taglib/releases) manually but not use maven."
-     */
-//    implementation(libs.taglib)
-    implementation(files("../prebuilt/taglib_1.0.0.aar")) // prebuilt
+    implementation(files("../prebuilt/taglib_1.0.0.aar"))
 }

@@ -30,7 +30,7 @@ import com.gumlaybeg.nimbletune.utils.closestMatch
 import com.gumlaybeg.nimbletune.utils.dataStore
 import com.gumlaybeg.nimbletune.utils.isPackageInstalled
 import com.gumlaybeg.nimbletune.utils.reportException
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

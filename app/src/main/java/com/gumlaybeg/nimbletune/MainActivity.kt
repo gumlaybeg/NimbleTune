@@ -222,8 +222,8 @@ import com.gumlaybeg.nimbletune.utils.scanners.LocalMediaScanner.Companion.scann
 import com.gumlaybeg.nimbletune.utils.scanners.ScannerAbortException
 import com.gumlaybeg.nimbletune.utils.urlEncode
 import com.valentinilk.shimmer.LocalShimmerTheme
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.SongItem
+import com.music.innertube.YouTube
+import com.music.innertube.models.SongItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

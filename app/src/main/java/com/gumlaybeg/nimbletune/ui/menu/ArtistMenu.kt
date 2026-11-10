@@ -30,7 +30,7 @@ import com.gumlaybeg.nimbletune.playback.queues.ListQueue
 import com.gumlaybeg.nimbletune.ui.component.ArtistListItem
 import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
-import com.zionhuang.innertube.YouTube
+import com.music.innertube.YouTube
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
