@@ -46,6 +46,7 @@ import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.ui.component.AsyncImageLocal
 import com.gumlaybeg.nimbletune.ui.component.Lyrics
 import com.gumlaybeg.nimbletune.ui.utils.imageCache
+import com.gumlaybeg.nimbletune.ui.utils.resize
 import com.gumlaybeg.nimbletune.utils.rememberPreference
 
 @Composable
@@ -118,7 +119,7 @@ fun Thumbnail(
                     } else {
                         // YTM thumbnail arts
                         AsyncImage(
-                            model = mediaMetadata?.thumbnailUrl,
+                            model = mediaMetadata?.thumbnailUrl?.resize(1080, 1080),
                             contentDescription = null,
                             contentScale = contentScale,
                             onSuccess = { success ->
