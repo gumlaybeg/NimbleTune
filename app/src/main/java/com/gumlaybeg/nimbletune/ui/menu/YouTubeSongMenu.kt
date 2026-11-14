@@ -67,6 +67,7 @@ import com.gumlaybeg.nimbletune.ui.component.GridMenu
 import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.ListDialog
 import com.gumlaybeg.nimbletune.ui.component.ListItem
+import com.gumlaybeg.nimbletune.ui.utils.resize
 import com.gumlaybeg.nimbletune.utils.joinByBullet
 import com.gumlaybeg.nimbletune.utils.makeTimeString
 import com.music.innertube.YouTube
@@ -192,7 +193,7 @@ fun YouTubeSongMenu(
         ),
         thumbnailContent = {
             AsyncImage(
-                model = song.thumbnail,
+                model = song.thumbnail.resize(544, 544),
                 contentDescription = null,
                 modifier = Modifier
                     .size(ListThumbnailSize)
