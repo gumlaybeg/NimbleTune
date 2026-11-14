@@ -62,6 +62,7 @@ import com.gumlaybeg.nimbletune.extensions.togglePlayPause
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.ui.component.AsyncImageLocal
 import com.gumlaybeg.nimbletune.ui.utils.imageCache
+import com.gumlaybeg.nimbletune.ui.utils.resize
 
 @Composable
 fun MiniPlayer(
@@ -173,7 +174,7 @@ fun MiniMediaInfo(
             } else {
                 // YTM thumbnail arts
                 AsyncImage(
-                    model = mediaMetadata.thumbnailUrl,
+                    model = mediaMetadata.thumbnailUrl?.resize(544, 544),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     onSuccess = { success ->
