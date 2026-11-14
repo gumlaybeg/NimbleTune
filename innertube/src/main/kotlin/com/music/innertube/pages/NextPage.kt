@@ -72,8 +72,9 @@ object NextPage {
                     ?.parseTime() ?: return null,
             musicVideoType = renderer.navigationEndpoint.musicVideoType,
             thumbnail =
-                renderer.thumbnail.thumbnails
-                    .lastOrNull()
+                (renderer.thumbnail.thumbnails
+                    .maxByOrNull { (it.width ?: 0) * (it.height ?: 0) }
+                    ?: renderer.thumbnail.thumbnails.lastOrNull())
                     ?.url ?: return null,
             explicit =
                 renderer.badges?.find {
