@@ -3,10 +3,11 @@ package com.gumlaybeg.nimbletune.extensions
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
-import com.music.innertube.models.SongItem
 import com.gumlaybeg.nimbletune.db.entities.Song
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.models.toMediaMetadata
+import com.gumlaybeg.nimbletune.ui.utils.resize
+import com.music.innertube.models.SongItem
 
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
@@ -21,7 +22,7 @@ fun Song.toMediaItem() = MediaItem.Builder()
             .setTitle(song.title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(song.thumbnailUrl?.toUri())
+            .setArtworkUri(song.thumbnailUrl?.resize(544, 544)?.toUri())
             .setAlbumTitle(song.albumName)
             .setMediaType(MEDIA_TYPE_MUSIC)
             .build()
@@ -38,7 +39,7 @@ fun SongItem.toMediaItem() = MediaItem.Builder()
             .setTitle(title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(thumbnail.toUri())
+            .setArtworkUri(thumbnail.resize(544, 544).toUri())
             .setAlbumTitle(album?.name)
             .setMediaType(MEDIA_TYPE_MUSIC)
             .build()
@@ -55,7 +56,7 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
             .setTitle(title)
             .setSubtitle(artists.joinToString { it.name })
             .setArtist(artists.joinToString { it.name })
-            .setArtworkUri(thumbnailUrl?.toUri())
+            .setArtworkUri(thumbnailUrl?.resize(544, 544)?.toUri())
             .setAlbumTitle(album?.title)
             .setMediaType(MEDIA_TYPE_MUSIC)
             .build()
