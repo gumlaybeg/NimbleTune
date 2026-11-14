@@ -370,7 +370,7 @@ object YouTube {
                     )
                 },
                 year = response.header.musicDetailHeaderRenderer.subtitle.runs?.lastOrNull()?.text?.toIntOrNull(),
-                thumbnail = response.header.musicDetailHeaderRenderer.thumbnail.croppedSquareThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()!!.url,
+                thumbnail = response.header.musicDetailHeaderRenderer.thumbnail.croppedSquareThumbnailRenderer?.getThumbnailUrl()!!,
                 explicit = false, // TODO: Extract explicit badge for albums from YouTube response
                 description = description
             )
@@ -398,7 +398,7 @@ object YouTube {
                         )
                     }!!,
                 year = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
-                thumbnail = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
+                thumbnail = response.contents.twoColumnBrowseResultsRenderer.tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()!!,
                 explicit = false, // TODO: Extract explicit badge for albums from YouTube response
                 description = description
             )
@@ -654,7 +654,7 @@ object YouTube {
             ?: throw IllegalStateException("Playlist title not found for id=$playlistId (header=${header != null})")
 
         // Thumbnail is optional — fall back to empty string rather than crashing
-        val thumbnailUrl = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url
+        val thumbnailUrl = header.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
             ?: ""
 
         // shuffleEndpoint is NOT guaranteed — remove !! to avoid NPE
