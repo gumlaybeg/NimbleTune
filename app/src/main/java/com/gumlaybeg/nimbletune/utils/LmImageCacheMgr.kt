@@ -25,7 +25,7 @@ class LmImageCacheMgr @Inject constructor(
      * Extract the album art from the audio file
      *
      * @param path Full path of audio file
-     * @param resize Whether to resize the Bitmap to a thumbnail size (300x300)
+     * @param resize Whether to resize the Bitmap to a thumbnail size (max 512px)
      */
     fun getLocalThumbnail(path: String?, resize: Boolean): Bitmap? {
         if (path == null) {
@@ -38,25 +38,33 @@ class LmImageCacheMgr @Inject constructor(
             localImageCache.retrieveImage(path)?.image
         }
 
-        if (cachedImage == null) {
-//        Timber.tag(TAG).d("Cache miss on $path")
-        } else {
+        if (cachedImage != null) {
             return cachedImage
         }
 
         val mData = MediaMetadataRetriever()
 
-        var image: Bitmap = try {
+        val decoded: Bitmap? = try {
             mData.setDataSource(path)
             val art = mData.embeddedPicture
-            BitmapFactory.decodeByteArray(art, 0, art!!.size)
+            if (art != null) BitmapFactory.decodeByteArray(art, 0, art.size) else null
         } catch (e: Exception) {
             localImageCache.cache(path, null, resize)
             null
-        } ?: return null
+        } finally {
+            runCatching { mData.release() }
+        }
+
+        var image = decoded ?: return null
 
         if (resize) {
-            image = Bitmap.createScaledBitmap(image, 100, 100, false)
+            val maxDim = maxOf(image.width, image.height)
+            if (maxDim > 512) {
+                val scale = 512f / maxDim
+                val targetW = (image.width * scale).toInt().coerceAtLeast(1)
+                val targetH = (image.height * scale).toInt().coerceAtLeast(1)
+                image = Bitmap.createScaledBitmap(image, targetW, targetH, true)
+            }
         }
 
         localImageCache.cache(path, image, resize)
