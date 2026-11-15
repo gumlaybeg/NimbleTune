@@ -12,6 +12,7 @@ import coil.disk.DiskCache
 import coil.request.CachePolicy
 import com.gumlaybeg.nimbletune.constants.*
 import com.gumlaybeg.nimbletune.extensions.*
+import com.gumlaybeg.nimbletune.utils.CrashRecorder
 import com.gumlaybeg.nimbletune.utils.dataStore
 import com.gumlaybeg.nimbletune.utils.get
 import com.gumlaybeg.nimbletune.utils.reportException
@@ -37,6 +38,7 @@ class App : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        CrashRecorder.install(this)
         Timber.plant(Timber.DebugTree())
 
         val locale = Locale.getDefault()
