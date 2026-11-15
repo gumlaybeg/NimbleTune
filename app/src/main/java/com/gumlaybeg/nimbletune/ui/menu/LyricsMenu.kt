@@ -55,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.gumlaybeg.nimbletune.LocalDatabase
 import com.gumlaybeg.nimbletune.R
 import com.gumlaybeg.nimbletune.db.entities.LyricsEntity
+import com.gumlaybeg.nimbletune.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.gumlaybeg.nimbletune.models.MediaMetadata
 import com.gumlaybeg.nimbletune.ui.component.DefaultDialog
 import com.gumlaybeg.nimbletune.ui.component.GridMenu
@@ -62,7 +63,6 @@ import com.gumlaybeg.nimbletune.ui.component.GridMenuItem
 import com.gumlaybeg.nimbletune.ui.component.ListDialog
 import com.gumlaybeg.nimbletune.ui.component.TextFieldDialog
 import com.gumlaybeg.nimbletune.viewmodels.LyricsMenuViewModel
-
 
 @Composable
 fun LyricsMenu(
@@ -83,7 +83,9 @@ fun LyricsMenu(
             onDismiss = { showEditDialog = false },
             icon = { Icon(imageVector = Icons.Rounded.Edit, contentDescription = null) },
             title = { Text(text = mediaMetadataProvider().title) },
-            initialTextFieldValue = TextFieldValue(lyricsProvider()?.lyrics.orEmpty()),
+            initialTextFieldValue = TextFieldValue(
+                lyricsProvider()?.lyrics?.takeIf { it != LYRICS_NOT_FOUND }.orEmpty()
+            ),
             singleLine = false,
             onDone = {
                 database.query {
@@ -94,6 +96,7 @@ fun LyricsMenu(
                         )
                     )
                 }
+                onDismiss()
             }
         )
     }
@@ -358,8 +361,7 @@ fun LyricsMenu(
         ) {
             showSearchDialog = true
         }
-        if (lyricsProvider() != null) {
-            // TODO: hide this for when lrc exists and lyrics is not in the database
+        if (lyricsProvider() != null && lyricsProvider()?.lyrics != LYRICS_NOT_FOUND) {
             GridMenuItem(
                 icon = Icons.Rounded.Delete,
                 title = R.string.delete,
