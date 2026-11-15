@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.gumlaybeg.nimbletune.ui.player
 
 import androidx.compose.animation.AnimatedContent
@@ -18,7 +20,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -45,7 +46,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Explicit
@@ -57,9 +57,13 @@ import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -74,15 +78,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -129,11 +128,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.PI
 import kotlin.math.absoluteValue
-import kotlin.math.cos
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 enum class MiniPlayerStyle {
     DEFAULT, MODERN, APPLE
@@ -142,86 +138,6 @@ enum class MiniPlayerStyle {
 private val MiniPlayerStyleKey = stringPreferencesKey("miniPlayerStyle")
 
 private val miniPlayerExplicitStatusCache = ConcurrentHashMap<String, Boolean>()
-
-private val Cookie4SidedShape: Shape = GenericShape { size, _ ->
-    val cx = size.width / 2f
-    val cy = size.height / 2f
-    val baseRadius = minOf(cx, cy) * 0.90f
-    val amplitude = baseRadius * 0.10f
-    val steps = 120
-    for (i in 0..steps) {
-        val angle = (2.0 * PI * i / steps)
-        val r = baseRadius + amplitude * cos(4.0 * angle).toFloat()
-        val x = cx + r * cos(angle).toFloat()
-        val y = cy + r * sin(angle).toFloat()
-        if (i == 0) moveTo(x, y) else lineTo(x, y)
-    }
-    close()
-}
-
-@Composable
-private fun WavyCircularProgressIndicator(
-    progress: () -> Float,
-    color: Color,
-    trackColor: Color,
-    isIndeterminate: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "wavy_progress")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2f * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600, easing = LinearEasing)
-        ),
-        label = "wavy_phase"
-    )
-    val rotationAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing)
-        ),
-        label = "wavy_rot"
-    )
-
-    Canvas(modifier = modifier) {
-        val strokePx = 2.5.dp.toPx()
-        val waveAmplitude = 1.1.dp.toPx()
-        val waveCount = 8f
-        val baseRadius = (size.minDimension - strokePx * 2f - waveAmplitude * 2f) / 2f
-        val center = Offset(size.width / 2f, size.height / 2f)
-
-        drawCircle(
-            color = trackColor,
-            radius = baseRadius,
-            center = center,
-            style = Stroke(width = strokePx)
-        )
-
-        val sweepDeg = if (isIndeterminate) 240f else (360f * progress().coerceIn(0f, 1f))
-        val startDeg = if (isIndeterminate) (-90f + rotationAngle) else -90f
-
-        if (sweepDeg > 0.5f) {
-            val steps = (sweepDeg / 3f).toInt().coerceAtLeast(10)
-            val path = Path()
-            for (s in 0..steps) {
-                val frac = s.toFloat() / steps
-                val angleDeg = startDeg + sweepDeg * frac
-                val angleRad = (angleDeg * PI / 180.0).toFloat()
-                val r = baseRadius + sin(angleRad * waveCount + phase) * waveAmplitude
-                val x = center.x + r * cos(angleRad)
-                val y = center.y + r * sin(angleRad)
-                if (s == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(width = strokePx, cap = StrokeCap.Round)
-            )
-        }
-    }
-}
 
 @Composable
 private fun MiniPlayerExplicitIcon(
@@ -585,7 +501,7 @@ fun ModernMiniPlayerContent(
                         }
                     }
 
-                    AnimatedVisibility(visible = error != null, enter = fadeIn(), exit = fadeOut()) {
+                    androidx.compose.animation.AnimatedVisibility(visible = error != null, enter = fadeIn(), exit = fadeOut()) {
                         Text(
                             text = stringResource(R.string.error_unknown),
                             color = errorColor,
@@ -729,7 +645,7 @@ fun AppleMiniPlayerContent(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(54.dp)
-                    .clip(Cookie4SidedShape)
+                    .clip(MaterialShapes.Cookie4Sided.toShape())
                     .background(color = outlineColor.copy(alpha = 0.2f))
             ) {
                 mediaMetadata?.let { metadata ->
@@ -793,7 +709,7 @@ fun AppleMiniPlayerContent(
                         }
                     }
 
-                    AnimatedVisibility(visible = error != null, enter = fadeIn(), exit = fadeOut()) {
+                    androidx.compose.animation.AnimatedVisibility(visible = error != null, enter = fadeIn(), exit = fadeOut()) {
                         Text(
                             text = stringResource(R.string.error_unknown),
                             color = errorColor,
@@ -1063,13 +979,20 @@ private fun MiniPlayerArtwork(
         contentAlignment = Alignment.Center,
         modifier = modifier.size(47.dp)
     ) {
-        WavyCircularProgressIndicator(
-            progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
-            color = progressColor,
-            trackColor = progressTrackColor,
-            isIndeterminate = isLoading,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (isLoading) {
+            CircularWavyProgressIndicator(
+                modifier = Modifier.fillMaxSize(),
+                color = progressColor,
+                trackColor = progressTrackColor
+            )
+        } else {
+            CircularWavyProgressIndicator(
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxSize(),
+                color = progressColor,
+                trackColor = progressTrackColor
+            )
+        }
 
         Box(
             contentAlignment = Alignment.Center,
