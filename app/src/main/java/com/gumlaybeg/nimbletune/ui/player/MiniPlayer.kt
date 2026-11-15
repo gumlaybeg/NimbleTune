@@ -1320,7 +1320,7 @@ fun MiniMediaInfo(
                         .clip(RoundedCornerShape(ThumbnailCornerRadius)),
                 )
             }
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
