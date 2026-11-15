@@ -27,9 +27,9 @@ object LyricsUtils {
 
     data class LrcParserOptions(val trim: Boolean, val multiLine: Boolean, val errorText: String)
 
-    private val LINE_TAG_REGEX = "\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?]".toRegex()
+    private val LINE_TAG_REGEX = "\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?\\]".toRegex()
     private val WORD_ELRC_REGEX = "<(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?>([^<]*)".toRegex()
-    private val AGENT_TAG_REGEX = "\\{agent:([^}]+)}".toRegex()
+    private val AGENT_TAG_REGEX = "\\{agent:([^\\}]+)\\}".toRegex()
 
     fun getSyncType(lyrics: String): SyncType {
         if (lyrics.isBlank()) return SyncType.NONE
