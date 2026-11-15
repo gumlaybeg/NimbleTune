@@ -305,7 +305,7 @@ fun PlayerV2Slider(
 ) {
     var scrubbedValue by remember { mutableStateOf<Float?>(null) }
     val maxRange = if (duration == C.TIME_UNSET || duration <= 0L) 0f else duration.toFloat()
-    val displayValue = (scrubbedValue ?: currentPos.toFloat()).coerceIn(0f, if (maxRange > 0f) maxRange else 1f)
+    val displayValue = (scrubbedValue ?: currentPos.toFloat()).coerceIn(0f, maxRange)
 
     when (sliderStyle) {
         SliderStyle.EXPANDING -> {
@@ -1346,7 +1346,7 @@ private fun PlayerV2Portrait(
                     targetState = playerState,
                     transitionSpec = {
                         fadeIn(animationSpec = tween(250, easing = FastOutSlowInEasing)) togetherWith
-                        fadeOut(animationSpec = tween(180, easing = FastOutSlowInEasing))
+                            fadeOut(animationSpec = tween(180, easing = FastOutSlowInEasing))
                     },
                     modifier = Modifier.fillMaxSize(),
                     label = "InternalWindow"
@@ -1557,12 +1557,14 @@ private fun PlayerV2Portrait(
                                                     )
                                                 }
                                             } else {
-                                                menuState.show {
-                                                    LyricsMenu(
-                                                        lyricsProvider = { currentLyrics },
-                                                        mediaMetadataProvider = { mediaMetadata!! },
-                                                        onDismiss = menuState::dismiss
-                                                    )
+                                                mediaMetadata?.let { meta ->
+                                                    menuState.show {
+                                                        LyricsMenu(
+                                                            lyricsProvider = { currentLyrics },
+                                                            mediaMetadataProvider = { meta },
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -1625,11 +1627,11 @@ private fun PlayerV2Portrait(
             AnimatedVisibility(
                 visible = controlsVisible,
                 enter = fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-                        slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } +
-                        expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)),
+                    slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { it } +
+                    expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)),
                 exit = fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
-                       slideOutVertically(animationSpec = tween(200, easing = FastOutSlowInEasing)) { it } +
-                       shrinkVertically(animationSpec = tween(200, easing = FastOutSlowInEasing))
+                    slideOutVertically(animationSpec = tween(200, easing = FastOutSlowInEasing)) { it } +
+                    shrinkVertically(animationSpec = tween(200, easing = FastOutSlowInEasing))
             ) {
                 Column(
                     modifier = Modifier
