@@ -18,6 +18,16 @@ data class LyricsEntry(
     val isBackground: Boolean = false,
     var isTranslation: Boolean = false,
 ) : Comparable<LyricsEntry> {
+    constructor(
+        timeStamp: Long,
+        content: String,
+        isTranslation: Boolean,
+    ) : this(
+        time = timeStamp,
+        text = content,
+        isTranslation = isTranslation,
+    )
+
     val timeStamp: Long get() = time
     val content: String get() = text
 
