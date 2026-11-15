@@ -19,6 +19,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -109,10 +110,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -169,6 +174,11 @@ import kotlin.math.sin
 enum class PlayerInternalState { COVER, LYRICS, QUEUE }
 enum class SliderStyle { EXPANDING, DEFAULT, SLIM }
 enum class CoverResolution(val size: Int) { RES_500(500), RES_800(800), RES_1080(1080) }
+
+private fun smootherStep(t: Float): Float {
+    val x = t.coerceIn(0f, 1f)
+    return x * x * x * (x * (x * 6f - 15f) + 10f)
+}
 
 fun Modifier.customSoftShadow(
     elevation: Dp,
@@ -289,6 +299,365 @@ fun LiveMeshBackground(
                 }
             }
     )
+}
+
+@Composable
+fun ImmersiveArtworkBackground(
+    mediaMetadata: MediaMetadata?,
+    disableBlur: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val immersiveTransition = rememberInfiniteTransition(label = "immersiveArtworkScale")
+    val maxCoverScale = 1.035f
+    val coverScale by immersiveTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = maxCoverScale,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 8000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "coverScale"
+    )
+
+    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+        AnimatedContent(
+            targetState = if (mediaMetadata?.isLocal == true) mediaMetadata.localPath else mediaMetadata?.thumbnailUrl,
+            transitionSpec = {
+                fadeIn(tween(800)) togetherWith fadeOut(tween(800))
+            },
+            label = "immersiveArtworkBackground"
+        ) { artworkSource ->
+            if (artworkSource != null) {
+                val isLocal = mediaMetadata?.isLocal == true
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (isLandscape) {
+                        val blurredRequest = remember(artworkSource, isLocal) {
+                            if (!isLocal) {
+                                ImageRequest.Builder(context)
+                                    .data(artworkSource)
+                                    .size(96, 96)
+                                    .crossfade(600)
+                                    .allowHardware(true)
+                                    .build()
+                            } else null
+                        }
+
+                        // Layer 1a: Base Full-Screen Blurred Backdrop
+                        if (isLocal) {
+                            AsyncImageLocal(
+                                image = { imageCache.getLocalThumbnail(artworkSource, true) },
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        scaleX = 1.15f
+                                        scaleY = 1.15f
+                                    }
+                                    .let { if (!disableBlur) it.blur(56.dp) else it }
+                            )
+                        } else {
+                            AsyncImage(
+                                model = blurredRequest,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                alignment = Alignment.Center,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        scaleX = 1.15f
+                                        scaleY = 1.15f
+                                    }
+                                    .let { if (!disableBlur) it.blur(56.dp) else it }
+                            )
+                        }
+
+                        // Layer 1b: Mirrored Top-Center Blurred Layer (faded smoothly over right side)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.Black.copy(alpha = 0.85f),
+                                                Color.Black.copy(alpha = 0.45f),
+                                                Color.Transparent
+                                            ),
+                                            center = Offset(size.width * 0.78f, size.height * 0.24f),
+                                            radius = size.width * 0.62f
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                        ) {
+                            if (isLocal) {
+                                AsyncImageLocal(
+                                    image = { imageCache.getLocalThumbnail(artworkSource, true) },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = -1.25f
+                                            scaleY = 1.25f
+                                        }
+                                        .let { if (!disableBlur) it.blur(56.dp) else it }
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = blurredRequest,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    alignment = Alignment.TopCenter,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = -1.25f
+                                            scaleY = 1.25f
+                                        }
+                                        .let { if (!disableBlur) it.blur(56.dp) else it }
+                                )
+                            }
+                        }
+
+                        // Layer 1c: Inverted Bottom-Center Blurred Layer (faded smoothly over lower-right)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.Black.copy(alpha = 0.78f),
+                                                Color.Black.copy(alpha = 0.35f),
+                                                Color.Transparent
+                                            ),
+                                            center = Offset(size.width * 0.62f, size.height * 0.85f),
+                                            radius = size.width * 0.58f
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                        ) {
+                            if (isLocal) {
+                                AsyncImageLocal(
+                                    image = { imageCache.getLocalThumbnail(artworkSource, true) },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = 1.3f
+                                            scaleY = -1.3f
+                                        }
+                                        .let { if (!disableBlur) it.blur(56.dp) else it }
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = blurredRequest,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    alignment = Alignment.BottomCenter,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = 1.3f
+                                            scaleY = -1.3f
+                                        }
+                                        .let { if (!disableBlur) it.blur(56.dp) else it }
+                                )
+                            }
+                        }
+
+                        // Layer 1.5: Horizontal Artwork Depth Scrim
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        0.00f to Color.Black.copy(alpha = 0.22f),
+                                        0.45f to Color.Black.copy(alpha = 0.46f),
+                                        1.00f to Color.Black.copy(alpha = 0.64f)
+                                    )
+                                )
+                        )
+
+                        // Layer 2: Clear Artwork on Left (Dissolves horizontally along smootherStep into backdrop)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .fillMaxHeight()
+                                .fillMaxWidth(0.58f)
+                                .graphicsLayer {
+                                    clip = true
+                                    compositingStrategy = CompositingStrategy.Offscreen
+                                }
+                                .drawWithContent {
+                                    drawContent()
+                                    if (size.width <= 0f || size.height <= 0f) return@drawWithContent
+
+                                    val horizontalStops = buildList {
+                                        add(0f to Color.Black)
+                                        for (i in 0..16) {
+                                            val t = i / 16f
+                                            val pos = 0.58f + t * 0.42f
+                                            add(pos to Color.Black.copy(alpha = 1f - smootherStep(t)))
+                                        }
+                                    }
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(
+                                            colorStops = horizontalStops.toTypedArray(),
+                                            startX = 0f,
+                                            endX = size.width,
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                        ) {
+                            if (isLocal) {
+                                AsyncImageLocal(
+                                    image = { imageCache.getLocalThumbnail(artworkSource, false) },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = coverScale
+                                            scaleY = coverScale
+                                        }
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(artworkSource)
+                                        .crossfade(600)
+                                        .allowHardware(true)
+                                        .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = coverScale
+                                            scaleY = coverScale
+                                        }
+                                )
+                            }
+                        }
+                    } else {
+                        // Layer 1: Full-Screen Blurred Backdrop
+                        if (isLocal) {
+                            AsyncImageLocal(
+                                image = { imageCache.getLocalThumbnail(artworkSource, true) },
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .let { if (!disableBlur) it.blur(100.dp) else it }
+                            )
+                        } else {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(artworkSource)
+                                    .size(128, 128)
+                                    .crossfade(600)
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .let { if (!disableBlur) it.blur(100.dp) else it }
+                            )
+                        }
+
+                        // Layer 1.5: Artwork Depth Scrim
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        0.00f to Color.Black.copy(alpha = 0.34f),
+                                        0.55f to Color.Black.copy(alpha = 0.48f),
+                                        1.00f to Color.Black.copy(alpha = 0.64f)
+                                    )
+                                )
+                        )
+
+                        // Layer 2: Clear Artwork (Dissolves along smootherStep into backdrop)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(0.65f)
+                                .graphicsLayer {
+                                    clip = true
+                                    compositingStrategy = CompositingStrategy.Offscreen
+                                }
+                                .drawWithContent {
+                                    drawContent()
+                                    if (size.width <= 0f || size.height <= 0f) return@drawWithContent
+
+                                    val verticalStops = buildList {
+                                        add(0f to Color.Black)
+                                        for (i in 0..16) {
+                                            val t = i / 16f
+                                            val pos = 0.58f + t * 0.42f
+                                            add(pos to Color.Black.copy(alpha = 1f - smootherStep(t)))
+                                        }
+                                    }
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            colorStops = verticalStops.toTypedArray(),
+                                            startY = 0f,
+                                            endY = size.height,
+                                        ),
+                                        blendMode = BlendMode.DstIn
+                                    )
+                                }
+                        ) {
+                            if (isLocal) {
+                                AsyncImageLocal(
+                                    image = { imageCache.getLocalThumbnail(artworkSource, false) },
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = coverScale
+                                            scaleY = coverScale
+                                        }
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(artworkSource)
+                                        .crossfade(600)
+                                        .allowHardware(true)
+                                        .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = coverScale
+                                            scaleY = coverScale
+                                        }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -528,10 +897,18 @@ fun BottomSheetPlayer(
         label = "adaptiveSurface"
     )
 
+    val immersiveDimAlpha by animateFloatAsState(
+        targetValue = if (playerBackground == PlayerBackgroundStyle.IMMERSIVE_ARTWORK && playerState != PlayerInternalState.COVER) 0.55f else 0f,
+        animationSpec = tween(250),
+        label = "immersiveDimAlpha"
+    )
+
     BottomSheet(
         state = state,
         modifier = modifier,
-        backgroundColor = if (useDarkTheme || playerBackground == PlayerBackgroundStyle.DEFAULT) {
+        backgroundColor = if (playerBackground == PlayerBackgroundStyle.IMMERSIVE_ARTWORK) {
+            Color.Black
+        } else if (useDarkTheme || playerBackground == PlayerBackgroundStyle.DEFAULT) {
             MaterialTheme.colorScheme.surfaceColorAtElevation(NavigationBarDefaults.Elevation)
         } else MaterialTheme.colorScheme.onSurfaceVariant,
         onDismiss = {
@@ -551,7 +928,21 @@ fun BottomSheetPlayer(
             enter = fadeIn(tween(300)),
             exit = fadeOut(tween(200))
         ) {
-            if (playerBackground == PlayerBackgroundStyle.LIVE_MESH || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+            if (playerBackground == PlayerBackgroundStyle.IMMERSIVE_ARTWORK) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    ImmersiveArtworkBackground(
+                        mediaMetadata = currentSong?.toMediaMetadata() ?: mediaMetadata,
+                        disableBlur = false
+                    )
+                    if (immersiveDimAlpha > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = immersiveDimAlpha))
+                        )
+                    }
+                }
+            } else if (playerBackground == PlayerBackgroundStyle.LIVE_MESH || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
                 LiveMeshBackground(
                     colors = gradientColors,
                     isPlaying = isPlaying
@@ -736,37 +1127,49 @@ private fun PlayerV2Landscape(
                         .fillMaxHeight(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight(0.88f)
-                            .aspectRatio(1f)
-                            .customSoftShadow(
-                                elevation = playerThumbnailShadowElevation.dp,
-                                cornerRadius = coverRadius,
-                                enabled = showPlayerThumbnailShadow
-                            )
-                            .background(adaptiveSurface, RoundedCornerShape(coverRadius))
-                            .clip(RoundedCornerShape(coverRadius))
-                            .SwipeGesture(
-                                enabled = true,
-                                onSwipeLeft = { if (canSkipNext) playerConnection.player.seekToNext() },
-                                onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
-                            )
-                    ) {
-                        if (mediaMetadata?.isLocal == true) {
-                            AsyncImageLocal(
-                                image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, false) },
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            AsyncImage(
-                                model = mediaMetadata?.thumbnailUrl?.resize(coverResolution.size, coverResolution.size),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                    if (playerBackground == PlayerBackgroundStyle.IMMERSIVE_ARTWORK) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .SwipeGesture(
+                                    enabled = true,
+                                    onSwipeLeft = { if (canSkipNext) playerConnection.player.seekToNext() },
+                                    onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
+                                )
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight(0.88f)
+                                .aspectRatio(1f)
+                                .customSoftShadow(
+                                    elevation = playerThumbnailShadowElevation.dp,
+                                    cornerRadius = coverRadius,
+                                    enabled = showPlayerThumbnailShadow
+                                )
+                                .background(adaptiveSurface, RoundedCornerShape(coverRadius))
+                                .clip(RoundedCornerShape(coverRadius))
+                                .SwipeGesture(
+                                    enabled = true,
+                                    onSwipeLeft = { if (canSkipNext) playerConnection.player.seekToNext() },
+                                    onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
+                                )
+                        ) {
+                            if (mediaMetadata?.isLocal == true) {
+                                AsyncImageLocal(
+                                    image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, false) },
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = mediaMetadata?.thumbnailUrl?.resize(coverResolution.size, coverResolution.size),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
                     }
                 }
@@ -1384,37 +1787,50 @@ private fun PlayerV2Portrait(
                         ) {
                             Spacer(modifier = Modifier.weight(1f))
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .customSoftShadow(
-                                        elevation = playerThumbnailShadowElevation.dp,
-                                        cornerRadius = coverRadius,
-                                        enabled = showPlayerThumbnailShadow
-                                    )
-                                    .background(adaptiveSurface, RoundedCornerShape(coverRadius))
-                                    .clip(RoundedCornerShape(coverRadius))
-                                    .SwipeGesture(
-                                        enabled = true,
-                                        onSwipeLeft = { if (canSkipNext) playerConnection.player.seekToNext() },
-                                        onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
-                                    )
-                            ) {
-                                if (mediaMetadata?.isLocal == true) {
-                                    AsyncImageLocal(
-                                        image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, false) },
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    AsyncImage(
-                                        model = mediaMetadata?.thumbnailUrl?.resize(coverResolution.size, coverResolution.size),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
+                            if (playerBackground == PlayerBackgroundStyle.IMMERSIVE_ARTWORK) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .SwipeGesture(
+                                            enabled = true,
+                                            onSwipeLeft = { if (canSkipNext) playerConnection.player.seekToNext() },
+                                            onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
+                                        )
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .customSoftShadow(
+                                            elevation = playerThumbnailShadowElevation.dp,
+                                            cornerRadius = coverRadius,
+                                            enabled = showPlayerThumbnailShadow
+                                        )
+                                        .background(adaptiveSurface, RoundedCornerShape(coverRadius))
+                                        .clip(RoundedCornerShape(coverRadius))
+                                        .SwipeGesture(
+                                            enabled = true,
+                                            onSwipeLeft = { if (canSkipNext) playerConnection.player.seekToNext() },
+                                            onSwipeRight = { if (canSkipPrevious) playerConnection.player.seekToPrevious() }
+                                        )
+                                ) {
+                                    if (mediaMetadata?.isLocal == true) {
+                                        AsyncImageLocal(
+                                            image = { imageCache.getLocalThumbnail(mediaMetadata.localPath, false) },
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        AsyncImage(
+                                            model = mediaMetadata?.thumbnailUrl?.resize(coverResolution.size, coverResolution.size),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
                                 }
                             }
 
