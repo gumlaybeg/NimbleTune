@@ -210,6 +210,8 @@ import com.gumlaybeg.nimbletune.ui.utils.appBarScrollBehavior
 import com.gumlaybeg.nimbletune.ui.utils.imageCache
 import com.gumlaybeg.nimbletune.ui.utils.resetHeightOffset
 import com.gumlaybeg.nimbletune.utils.ActivityLauncherHelper
+import com.gumlaybeg.nimbletune.utils.CrashLogDialog
+import com.gumlaybeg.nimbletune.utils.CrashRecorder
 import com.gumlaybeg.nimbletune.utils.NetworkConnectivityObserver
 import com.gumlaybeg.nimbletune.utils.SyncUtils
 import com.gumlaybeg.nimbletune.utils.dataStore
@@ -1307,6 +1309,20 @@ class MainActivity : ComponentActivity() {
                             searchBarFocusRequester.requestFocus()
                             openSearchImmediately = false
                         }
+                    }
+
+                    var pendingCrashLog by remember {
+                        mutableStateOf(CrashRecorder.getCrashLog(this@MainActivity))
+                    }
+
+                    pendingCrashLog?.let { crashLog ->
+                        CrashLogDialog(
+                            crashLog = crashLog,
+                            onDismiss = {
+                                CrashRecorder.clearCrashLog(this@MainActivity)
+                                pendingCrashLog = null
+                            }
+                        )
                     }
                 }
             }
