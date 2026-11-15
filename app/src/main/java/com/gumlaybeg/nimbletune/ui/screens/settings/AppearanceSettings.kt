@@ -181,6 +181,7 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
                     PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
+                    PlayerBackgroundStyle.IMMERSIVE_ARTWORK -> "Immersive Artwork"
                 }
             }
         )
@@ -353,6 +354,7 @@ fun AppearanceSettings(
                                 PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                 PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
                                 PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
+                                PlayerBackgroundStyle.IMMERSIVE_ARTWORK -> "Immersive Artwork"
                             }
                         )
                     },
@@ -486,7 +488,7 @@ enum class DarkMode {
 }
 
 enum class PlayerBackgroundStyle {
-    DEFAULT, GRADIENT, BLUR, GLOW_ANIMATED, LIVE_MESH
+    DEFAULT, GRADIENT, BLUR, GLOW_ANIMATED, LIVE_MESH, IMMERSIVE_ARTWORK
 }
 
 enum class NavigationTab {
