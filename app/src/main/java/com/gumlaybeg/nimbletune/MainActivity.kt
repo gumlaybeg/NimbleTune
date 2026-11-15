@@ -17,9 +17,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -998,26 +999,8 @@ class MainActivity : ComponentActivity() {
                                 .nestedScroll(searchBarScrollBehavior.nestedScrollConnection)
                                 .background(MaterialTheme.colorScheme.surface)
                         ) {
-                            var transitionDirection = AnimatedContentTransitionScope.SlideDirection.Left
-
-                            if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
-                                if (navigationItems.fastAny { it.route == previousTab }) {
-                                    val curIndex = navigationItems.indexOf(
-                                        navigationItems.fastFirstOrNull {
-                                            it.route == navBackStackEntry?.destination?.route
-                                        }
-                                    )
-
-                                    val prevIndex = navigationItems.indexOf(
-                                        navigationItems.fastFirstOrNull {
-                                            it.route == previousTab
-                                        }
-                                    )
-
-                                    if (prevIndex > curIndex)
-                                        transitionDirection =
-                                            AnimatedContentTransitionScope.SlideDirection.Right
-                                }
+                            val topLevelScreens = remember(navigationItems) {
+                                navigationItems.map { it.route } + "settings"
                             }
 
                             NavHost(
@@ -1034,16 +1017,44 @@ class MainActivity : ComponentActivity() {
                                     else -> Screens.Home
                                 }.route,
                                 enterTransition = {
-                                    fadeIn(tween(250)) + slideInHorizontally { it / 2 }
+                                    if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
+                                        fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                                    } else {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(animationSpec = tween(300, easing = LinearEasing))
+                                    }
                                 },
                                 exitTransition = {
-                                    fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
+                                    if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
+                                        fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                                    } else {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it / 4 },
+                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                        ) + fadeOut(animationSpec = tween(300, easing = LinearEasing))
+                                    }
                                 },
                                 popEnterTransition = {
-                                    fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
+                                    if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                                    } else {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it / 4 },
+                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(animationSpec = tween(300, easing = LinearEasing))
+                                    }
                                 },
                                 popExitTransition = {
-                                    fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
+                                    if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
+                                        fadeOut(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                                    } else {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                                        ) + fadeOut(animationSpec = tween(200, easing = LinearEasing))
+                                    }
                                 },
                                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
                             ) {
