@@ -305,22 +305,28 @@ fun LiveMeshBackground(
 fun ImmersiveArtworkBackground(
     mediaMetadata: MediaMetadata?,
     disableBlur: Boolean = false,
+    animateScale: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val immersiveTransition = rememberInfiniteTransition(label = "immersiveArtworkScale")
     val maxCoverScale = 1.035f
-    val coverScale by immersiveTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = maxCoverScale,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 8000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "coverScale"
-    )
+    val coverScale = if (animateScale) {
+        val immersiveTransition = rememberInfiniteTransition(label = "immersiveArtworkScale")
+        val animatedScale by immersiveTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = maxCoverScale,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 8000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "coverScale"
+        )
+        animatedScale
+    } else {
+        1.0f
+    }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         AnimatedContent(
@@ -924,7 +930,8 @@ fun BottomSheetPlayer(
         }
     ) {
         AnimatedVisibility(
-            visible = !powerManager.isPowerSaveMode && (state.value > state.collapsedBound),
+            visible = (playerBackground == PlayerBackgroundStyle.IMMERSIVE_ARTWORK || !powerManager.isPowerSaveMode) &&
+                (state.value > state.collapsedBound),
             enter = fadeIn(tween(300)),
             exit = fadeOut(tween(200))
         ) {
@@ -932,7 +939,8 @@ fun BottomSheetPlayer(
                 Box(modifier = Modifier.fillMaxSize()) {
                     ImmersiveArtworkBackground(
                         mediaMetadata = currentSong?.toMediaMetadata() ?: mediaMetadata,
-                        disableBlur = false
+                        disableBlur = false,
+                        animateScale = !powerManager.isPowerSaveMode
                     )
                     if (immersiveDimAlpha > 0f) {
                         Box(
