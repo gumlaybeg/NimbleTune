@@ -25,7 +25,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 
@@ -50,15 +52,26 @@ class PlayerConnection(
     }
     val currentLyrics = mediaMetadata.flatMapLatest { mediaMetadata ->
         if (mediaMetadata != null) {
-            val lyrics = service.lyricsHelper.getLyrics(mediaMetadata, database)
-            return@flatMapLatest flowOf(
-                LyricsEntity(
-                    id = mediaMetadata.id,
-                    lyrics = lyrics
-                )
-            )
+            flow {
+                var fallbackLyrics: String? = null
+                val existingDbLyrics = database.lyrics(mediaMetadata.id).first()
+                if (existingDbLyrics == null) {
+                    fallbackLyrics = service.lyricsHelper.getLyrics(mediaMetadata, database)
+                }
+                var sawNonNullDb = existingDbLyrics != null
+                database.lyrics(mediaMetadata.id).collect { dbEntity ->
+                    if (dbEntity != null) {
+                        sawNonNullDb = true
+                        emit(dbEntity)
+                    } else if (!sawNonNullDb && fallbackLyrics != null) {
+                        emit(LyricsEntity(id = mediaMetadata.id, lyrics = fallbackLyrics))
+                    } else if (sawNonNullDb) {
+                        emit(LyricsEntity(id = mediaMetadata.id, lyrics = LyricsEntity.LYRICS_NOT_FOUND))
+                    }
+                }
+            }
         } else {
-            return@flatMapLatest flowOf()
+            flowOf(null)
         }
     }
     val currentFormat = mediaMetadata.flatMapLatest { mediaMetadata ->
