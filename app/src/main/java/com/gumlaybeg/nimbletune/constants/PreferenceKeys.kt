@@ -69,6 +69,14 @@ val MultilineLrcKey = booleanPreferencesKey("multilineLrc")
 val LyricTrimKey = booleanPreferencesKey("lyricTrim")
 val LyricSourcePrefKey = booleanPreferencesKey("preferLocalLyrics")
 val LyricFontSizeKey = intPreferencesKey("lyricFontSize")
+val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
+val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
+val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
+val LyricsRomanizeAsMainKey = booleanPreferencesKey("lyricsRomanizeAsMain")
+
+enum class LyricsAnimationStyle {
+    METRO_LYRICS, APPLE, KARAOKE, GLOW, SLIDE, FADE, NONE
+}
 
 
 /**
@@ -85,6 +93,8 @@ val PauseRemoteListenHistoryKey = booleanPreferencesKey("pauseRemoteListenHistor
 val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrcLib")
+val EnablePaxsenixKey = booleanPreferencesKey("enablePaxsenix")
+val EnableYouLyPlusKey = booleanPreferencesKey("enableYouLyPlus")
 val UseLoginForBrowse = booleanPreferencesKey("useLoginForBrowse")
 
 

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -188,6 +189,9 @@ dependencies {
 
     implementation(libs.timber)
     implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.encoding)
     implementation(libs.ktor.serialization.json)
 
     implementation(files("../prebuilt/taglib_1.0.0.aar"))
