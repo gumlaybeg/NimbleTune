@@ -20,6 +20,7 @@ import com.gumlaybeg.nimbletune.playback.queues.Queue
 import com.gumlaybeg.nimbletune.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,9 +51,9 @@ class PlayerConnection(
     val currentSong = mediaMetadata.flatMapLatest {
         database.song(it?.id)
     }
-    val currentLyrics = mediaMetadata.flatMapLatest { mediaMetadata ->
+    val currentLyrics: Flow<LyricsEntity?> = mediaMetadata.flatMapLatest { mediaMetadata ->
         if (mediaMetadata != null) {
-            flow {
+            flow<LyricsEntity?> {
                 var fallbackLyrics: String? = null
                 val existingDbLyrics = database.lyrics(mediaMetadata.id).first()
                 if (existingDbLyrics == null) {
