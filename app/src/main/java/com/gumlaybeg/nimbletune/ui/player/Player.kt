@@ -90,6 +90,7 @@ import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
@@ -307,6 +308,18 @@ fun PlayerV2Slider(
     val maxRange = if (duration == C.TIME_UNSET || duration <= 0L) 0f else duration.toFloat()
     val displayValue = (scrubbedValue ?: currentPos.toFloat()).coerceIn(0f, maxRange)
 
+    val sliderState = remember(maxRange) {
+        SliderState(
+            value = displayValue,
+            trackRange = 0f..maxRange
+        )
+    }
+    LaunchedEffect(displayValue, sliderState) {
+        if (!sliderState.isDragging && sliderState.value != displayValue) {
+            sliderState.value = displayValue
+        }
+    }
+
     when (sliderStyle) {
         SliderStyle.EXPANDING -> {
             val trackInteractionSource = remember { MutableInteractionSource() }
@@ -321,9 +334,9 @@ fun PlayerV2Slider(
             )
 
             Slider(
-                value = displayValue,
-                valueRange = 0f..maxRange,
+                state = sliderState,
                 onValueChange = { value ->
+                    sliderState.value = value
                     scrubbedValue = value
                     onValueChange(value.toLong())
                 },
@@ -334,9 +347,9 @@ fun PlayerV2Slider(
                 enabled = maxRange > 0f,
                 interactionSource = trackInteractionSource,
                 thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                track = { sliderState ->
+                track = { state ->
                     PlayerSliderTrack(
-                        sliderState = sliderState,
+                        sliderState = state,
                         trackHeight = trackHeight,
                         colors = PlayerSliderColors.getSliderColors(
                             activeColor = adaptivePrimary.copy(alpha = 0.8f),
@@ -350,9 +363,9 @@ fun PlayerV2Slider(
         }
         SliderStyle.SLIM -> {
             Slider(
-                value = displayValue,
-                valueRange = 0f..maxRange,
+                state = sliderState,
                 onValueChange = { value ->
+                    sliderState.value = value
                     scrubbedValue = value
                     onValueChange(value.toLong())
                 },
@@ -362,9 +375,9 @@ fun PlayerV2Slider(
                 },
                 enabled = maxRange > 0f,
                 thumb = { Spacer(modifier = Modifier.size(0.dp)) },
-                track = { sliderState ->
+                track = { state ->
                     PlayerSliderTrack(
-                        sliderState = sliderState,
+                        sliderState = state,
                         colors = PlayerSliderColors.getSliderColors(
                             activeColor = adaptivePrimary,
                             playerBackground = playerBackground,
@@ -378,9 +391,9 @@ fun PlayerV2Slider(
         }
         else -> {
             Slider(
-                value = displayValue,
-                valueRange = 0f..maxRange,
+                state = sliderState,
                 onValueChange = { value ->
+                    sliderState.value = value
                     scrubbedValue = value
                     onValueChange(value.toLong())
                 },
@@ -994,13 +1007,25 @@ private fun PlayerV2Landscape(
                                 }
                         )
                         Spacer(modifier = Modifier.width(12.dp))
+                        val volumeValue = (if (isMuted) 0f else playerVolume).coerceIn(0f, 1f)
+                        val volumeSliderState = remember {
+                            SliderState(
+                                value = volumeValue,
+                                trackRange = 0f..1f
+                            )
+                        }
+                        LaunchedEffect(volumeValue) {
+                            if (!volumeSliderState.isDragging && volumeSliderState.value != volumeValue) {
+                                volumeSliderState.value = volumeValue
+                            }
+                        }
                         Slider(
-                            value = (if (isMuted) 0f else playerVolume).coerceIn(0f, 1f),
+                            state = volumeSliderState,
                             onValueChange = { newValue ->
+                                volumeSliderState.value = newValue
                                 playerConnection.service.playerVolume.value = newValue
                                 if (newValue > 0f) isMuted = false
                             },
-                            valueRange = 0f..1f,
                             thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                             track = { sliderState ->
                                 PlayerSliderTrack(
@@ -1760,13 +1785,25 @@ private fun PlayerV2Portrait(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
 
+                        val volumeValue = (if (isMuted) 0f else playerVolume).coerceIn(0f, 1f)
+                        val volumeSliderState = remember {
+                            SliderState(
+                                value = volumeValue,
+                                trackRange = 0f..1f
+                            )
+                        }
+                        LaunchedEffect(volumeValue) {
+                            if (!volumeSliderState.isDragging && volumeSliderState.value != volumeValue) {
+                                volumeSliderState.value = volumeValue
+                            }
+                        }
                         Slider(
-                            value = (if (isMuted) 0f else playerVolume).coerceIn(0f, 1f),
+                            state = volumeSliderState,
                             onValueChange = { newValue ->
+                                volumeSliderState.value = newValue
                                 playerConnection.service.playerVolume.value = newValue
                                 if (newValue > 0f) isMuted = false
                             },
-                            valueRange = 0f..1f,
                             thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                             track = { sliderState ->
                                 PlayerSliderTrack(
