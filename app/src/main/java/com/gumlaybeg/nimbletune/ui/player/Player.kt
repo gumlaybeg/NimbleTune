@@ -19,7 +19,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -44,7 +43,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -76,7 +74,6 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
@@ -125,6 +122,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.C
+import androidx.media3.common.Player.REPEAT_MODE_OFF
+import androidx.media3.common.Player.REPEAT_MODE_ONE
+import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -156,18 +158,12 @@ import com.gumlaybeg.nimbletune.ui.utils.imageCache
 import com.gumlaybeg.nimbletune.ui.utils.resize
 import com.gumlaybeg.nimbletune.utils.makeTimeString
 import com.gumlaybeg.nimbletune.utils.rememberEnumPreference
-import com.gumlaybeg.nimbletune.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlin.math.PI
 import kotlin.math.sin
-import androidx.media3.common.C
-import androidx.media3.common.Player.REPEAT_MODE_OFF
-import androidx.media3.common.Player.REPEAT_MODE_ONE
-import androidx.media3.common.Player.STATE_ENDED
-import androidx.media3.common.Player.STATE_READY
 
 enum class PlayerInternalState { COVER, LYRICS, QUEUE }
 enum class SliderStyle { EXPANDING, DEFAULT, SLIM }
@@ -1256,7 +1252,8 @@ private fun PlayerV2Landscape(
                 ) {
                     if (currentUiState == PlayerInternalState.LYRICS) {
                         Lyrics(
-                            sliderPositionProvider = { sliderPosition ?: position },
+                            sliderPositionProvider = { sliderPosition },
+                            onClose = { onPlayerStateChange(PlayerInternalState.COVER) },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else if (currentUiState == PlayerInternalState.QUEUE) {
@@ -1588,7 +1585,9 @@ private fun PlayerV2Portrait(
                                 if (targetState == PlayerInternalState.LYRICS) {
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         Lyrics(
-                                            sliderPositionProvider = { sliderPosition ?: position },
+                                            sliderPositionProvider = { sliderPosition },
+                                            onClose = { onPlayerStateChange(PlayerInternalState.COVER) },
+                                            bottomEndReservedPadding = 56.dp,
                                             modifier = Modifier.fillMaxSize()
                                         )
 
