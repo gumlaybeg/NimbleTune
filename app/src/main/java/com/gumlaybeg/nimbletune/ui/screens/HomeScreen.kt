@@ -77,6 +77,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -1005,7 +1006,7 @@ fun HomeScreen(
                                             val resolvedSong = song ?: originalSong
 
                                             Surface(
-                                                shape = listItemShape(index = index % 4, count = 4),
+                                                shape = listItemShape(index = index % 4, total = 4),
                                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                 modifier = Modifier
                                                     .width(horizontalLazyGridItemWidth)
@@ -1069,7 +1070,7 @@ fun HomeScreen(
                                             key = { _, it -> it.id }
                                         ) { index, song ->
                                             Surface(
-                                                shape = listItemShape(index = index % 4, count = 4),
+                                                shape = listItemShape(index = index % 4, total = 4),
                                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                 modifier = Modifier
                                                     .width(horizontalLazyGridItemWidth)
@@ -1263,8 +1264,8 @@ fun HomeScreen(
                                                         .diskCacheKey(url)
                                                         .crossfade(false)
                                                         .build(),
-                                                    placeholder = painterResource(id = R.drawable.person),
-                                                    error = painterResource(id = R.drawable.person),
+                                                    placeholder = rememberVectorPainter(Icons.Rounded.Person),
+                                                    error = rememberVectorPainter(Icons.Rounded.Person),
                                                     contentDescription = null,
                                                     contentScale = ContentScale.Crop,
                                                     modifier = Modifier
@@ -1342,7 +1343,7 @@ fun HomeScreen(
                                             val resolvedSong = song ?: originalSong
 
                                             Surface(
-                                                shape = listItemShape(index = index % rows, count = rows),
+                                                shape = listItemShape(index = index % rows, total = rows),
                                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                 modifier = Modifier
                                                     .width(horizontalLazyGridItemWidth)
@@ -1485,7 +1486,7 @@ fun HomeScreen(
                                                 key = { _, it -> it.id }
                                             ) { index, song ->
                                                 Surface(
-                                                    shape = listItemShape(index = index % 4, count = 4),
+                                                    shape = listItemShape(index = index % 4, total = 4),
                                                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                     modifier = Modifier
                                                         .width(horizontalLazyGridItemWidth)
