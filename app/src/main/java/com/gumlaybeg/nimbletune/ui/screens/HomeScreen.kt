@@ -5,7 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -37,24 +35,29 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Casino
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
+import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -72,12 +75,17 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -86,39 +94,38 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.gumlaybeg.nimbletune.LocalDatabase
 import com.gumlaybeg.nimbletune.LocalPlayerAwareWindowInsets
 import com.gumlaybeg.nimbletune.LocalPlayerConnection
 import com.gumlaybeg.nimbletune.R
-import com.gumlaybeg.nimbletune.constants.AccountNameKey
 import com.gumlaybeg.nimbletune.constants.GridThumbnailHeight
 import com.gumlaybeg.nimbletune.constants.InnerTubeCookieKey
 import com.gumlaybeg.nimbletune.constants.ListItemHeight
 import com.gumlaybeg.nimbletune.constants.ListThumbnailSize
+import com.gumlaybeg.nimbletune.constants.RandomizeHomeOrderKey
 import com.gumlaybeg.nimbletune.constants.ThumbnailCornerRadius
 import com.gumlaybeg.nimbletune.db.entities.Album
 import com.gumlaybeg.nimbletune.db.entities.Artist
 import com.gumlaybeg.nimbletune.db.entities.LocalItem
 import com.gumlaybeg.nimbletune.db.entities.Playlist
-import com.gumlaybeg.nimbletune.db.entities.RecentActivityType.ALBUM
-import com.gumlaybeg.nimbletune.db.entities.RecentActivityType.ARTIST
-import com.gumlaybeg.nimbletune.db.entities.RecentActivityType.PLAYLIST
 import com.gumlaybeg.nimbletune.db.entities.Song
 import com.gumlaybeg.nimbletune.extensions.togglePlayPause
 import com.gumlaybeg.nimbletune.models.toMediaMetadata
 import com.gumlaybeg.nimbletune.playback.queues.ListQueue
 import com.gumlaybeg.nimbletune.playback.queues.YouTubeAlbumRadio
 import com.gumlaybeg.nimbletune.playback.queues.YouTubeQueue
+import com.gumlaybeg.nimbletune.ui.component.ActiveBoxAlpha
 import com.gumlaybeg.nimbletune.ui.component.AlbumGridItem
 import com.gumlaybeg.nimbletune.ui.component.ArtistGridItem
 import com.gumlaybeg.nimbletune.ui.component.ChipsRow
 import com.gumlaybeg.nimbletune.ui.component.HideOnScrollFAB
 import com.gumlaybeg.nimbletune.ui.component.LocalMenuState
-import com.gumlaybeg.nimbletune.ui.component.NavigationTile
 import com.gumlaybeg.nimbletune.ui.component.NavigationTitle
+import com.gumlaybeg.nimbletune.ui.component.PlayingIndicatorBox
 import com.gumlaybeg.nimbletune.ui.component.SongGridItem
 import com.gumlaybeg.nimbletune.ui.component.SongListItem
-import com.gumlaybeg.nimbletune.ui.component.YouTubeCardItem
 import com.gumlaybeg.nimbletune.ui.component.YouTubeGridItem
 import com.gumlaybeg.nimbletune.ui.component.YouTubeListItem
 import com.gumlaybeg.nimbletune.ui.component.listItemShape
@@ -133,10 +140,10 @@ import com.gumlaybeg.nimbletune.ui.menu.YouTubeArtistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubePlaylistMenu
 import com.gumlaybeg.nimbletune.ui.menu.YouTubeSongMenu
 import com.gumlaybeg.nimbletune.ui.utils.SnapLayoutInfoProvider
+import com.gumlaybeg.nimbletune.ui.utils.resize
 import com.gumlaybeg.nimbletune.utils.rememberPreference
-import com.gumlaybeg.nimbletune.utils.reportException
+import com.gumlaybeg.nimbletune.viewmodels.DailyDiscoverItem
 import com.gumlaybeg.nimbletune.viewmodels.HomeViewModel
-import com.music.innertube.YouTube
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
@@ -146,28 +153,160 @@ import com.music.innertube.models.YTItem
 import com.music.innertube.pages.HomePage
 import com.music.innertube.utils.parseCookieString
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.random.Random
 
 sealed class HomeSection(val id: String, val baseWeight: Int) {
+    data object SpeedDial : HomeSection("speed_dial", 100)
     data object QuickPicks : HomeSection("quick_picks", 90)
+    data object CoversAndRemixes : HomeSection("covers_and_remixes", 85)
+    data object DailyDiscover : HomeSection("daily_discover", 80)
     data object KeepListening : HomeSection("keep_listening", 50)
     data object AccountPlaylists : HomeSection("account_playlists", 40)
     data object ForgottenFavorites : HomeSection("forgotten_favorites", 30)
+    data object FromTheCommunity : HomeSection("from_the_community", 20)
     data class SimilarRecommendation(val index: Int) : HomeSection("similar_recommendation_$index", 10)
     data class HomePageSection(val index: Int) : HomeSection("home_page_section_$index", 10)
     data object MoodAndGenres : HomeSection("mood_and_genres", 5)
 }
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
-@OptIn(
-    ExperimentalFoundationApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun DailyDiscoverCard(
+    dailyDiscover: DailyDiscoverItem,
+    onClick: () -> Unit,
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
+    val database = LocalDatabase.current
+    val playCount by database.getLifetimePlayCount(dailyDiscover.recommendation.id).collectAsState(initial = 0)
+    val menuState = LocalMenuState.current
+    val haptic = LocalHapticFeedback.current
+
+    val song = dailyDiscover.recommendation as? SongItem
+
+    Card(
+        modifier = modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(16.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (song != null) {
+                        menuState.show {
+                            YouTubeSongMenu(
+                                song = song,
+                                navController = navController,
+                                onDismiss = { menuState.dismiss() }
+                            )
+                        }
+                    }
+                }
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            var currentThumbnailUrl by remember(dailyDiscover.recommendation.thumbnail) {
+                mutableStateOf(dailyDiscover.recommendation.thumbnail?.resize(1200, 1200))
+            }
+
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(currentThumbnailUrl)
+                    .crossfade(true)
+                    .build(),
+                onError = {
+                    val url = currentThumbnailUrl
+                    if (url != null && url.contains("maxresdefault.jpg")) {
+                        currentThumbnailUrl = url.replace("maxresdefault.jpg", "hqdefault.jpg")
+                    }
+                },
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (maxWidth > 200.dp) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.3f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.6f),
+                                    Color.Black.copy(alpha = 0.9f)
+                                )
+                            )
+                        )
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = dailyDiscover.recommendation.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = buildString {
+                                append((dailyDiscover.recommendation as? SongItem)?.artists?.joinToString(", ") { it.name } ?: "")
+                                if (playCount > 0) {
+                                    append(" • $playCount plays")
+                                }
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    val prefixes = listOf(
+                        "Sounds like",
+                        "Because you listen to",
+                        "Similar to",
+                        "Based on",
+                        "For fans of"
+                    )
+                    val prefix = remember(dailyDiscover.seed.id) {
+                        prefixes[abs(dailyDiscover.seed.id.hashCode()) % prefixes.size]
+                    }
+
+                    Text(
+                        text = "$prefix ${dailyDiscover.seed.title} • ${dailyDiscover.seed.artists.joinToString(", ") { it.name }}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -194,110 +333,51 @@ fun HomeScreen(
         }
         return
     }
-
-    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
 
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val queuePlaylistId by playerConnection.queuePlaylistId.collectAsState()
 
     val quickPicks by viewModel.quickPicks.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
-    val baseHomePage by viewModel.homePage.collectAsState()
+    val homePage by viewModel.homePage.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
-    val playlists by viewModel.playlists.collectAsState()
-    val recentActivity by viewModel.recentActivity.collectAsState()
+    val dailyDiscover by viewModel.dailyDiscover.collectAsState()
+    val coversAndRemixes by viewModel.coversAndRemixes.collectAsState()
+    val communityPlaylists by viewModel.communityPlaylists.collectAsState()
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
+    val speedDialItems by viewModel.speedDialItems.collectAsState()
+    val pinnedSpeedDialItems by viewModel.pinnedSpeedDialItems.collectAsState()
+    val selectedChip by viewModel.selectedChip.collectAsState()
 
     val isLoading by viewModel.isLoading.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isRandomizing by viewModel.isRandomizing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
     val quickPicksLazyGridState = rememberLazyGridState()
     val forgottenFavoritesLazyGridState = rememberLazyGridState()
-    val recentActivityGridState = rememberLazyGridState()
-    val lazylistState = rememberLazyListState()
 
-    val accountName by rememberPreference(AccountNameKey, "")
+    val accountName by viewModel.accountName.collectAsState()
+    val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
+
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
+    val url = if (isLoggedIn) accountImageUrl else null
 
-    var selectedChip by remember { mutableStateOf<HomePage.Chip?>(null) }
-    var chipHomePage by remember { mutableStateOf<HomePage?>(null) }
-    var continuationSections by remember { mutableStateOf<List<HomePage.Section>>(emptyList()) }
-    var currentContinuation by remember { mutableStateOf<String?>(null) }
-    var isLoadingMore by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var randomizeJob by remember { mutableStateOf<Job?>(null) }
 
-    val activeHomePage = remember(selectedChip, chipHomePage, baseHomePage, continuationSections, currentContinuation) {
-        val base = if (selectedChip != null) chipHomePage else baseHomePage
-        base?.copy(
-            sections = base.sections + continuationSections,
-            continuation = currentContinuation ?: base.continuation
-        )
-    }
-
-    LaunchedEffect(baseHomePage, selectedChip) {
-        if (selectedChip == null) {
-            continuationSections = emptyList()
-            currentContinuation = baseHomePage?.continuation
-        }
-    }
-
-    fun selectChip(chip: HomePage.Chip?) {
-        val nextChip = if (chip == selectedChip) null else chip
-        selectedChip = nextChip
-        continuationSections = emptyList()
-        if (nextChip == null) {
-            chipHomePage = null
-            currentContinuation = baseHomePage?.continuation
-            return
-        }
-        val params = nextChip.endpoint?.params
-        scope.launch(Dispatchers.IO) {
-            YouTube.home(params = params)
-                .onSuccess { page ->
-                    withContext(Dispatchers.Main) {
-                        chipHomePage = page.copy(chips = baseHomePage?.chips ?: page.chips)
-                        currentContinuation = page.continuation
-                    }
-                }
-                .onFailure {
-                    reportException(it)
-                }
-        }
-    }
-
-    fun loadMoreHomeSections() {
-        val token = activeHomePage?.continuation ?: return
-        if (isLoadingMore) return
-        isLoadingMore = true
-        scope.launch(Dispatchers.IO) {
-            YouTube.home(continuation = token)
-                .onSuccess { nextPage ->
-                    withContext(Dispatchers.Main) {
-                        continuationSections = continuationSections + nextPage.sections
-                        currentContinuation = nextPage.continuation
-                        isLoadingMore = false
-                    }
-                }
-                .onFailure {
-                    reportException(it)
-                    withContext(Dispatchers.Main) {
-                        isLoadingMore = false
-                    }
-                }
-        }
-    }
-
+    val lazylistState = rememberLazyListState()
+    val currentGridHeight = GridThumbnailHeight
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
 
@@ -305,9 +385,6 @@ fun HomeScreen(
 
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            selectedChip = null
-            chipHomePage = null
-            continuationSections = emptyList()
             randomSeed = System.currentTimeMillis()
         }
     }
@@ -319,23 +396,23 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(activeHomePage?.continuation) {
+    LaunchedEffect(Unit) {
         snapshotFlow { lazylistState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
                 val len = lazylistState.layoutInfo.totalItemsCount
-                if (lastVisibleIndex != null && len > 0 && lastVisibleIndex >= len - 3) {
-                    loadMoreHomeSections()
+                if (lastVisibleIndex != null && lastVisibleIndex >= len - 3) {
+                    viewModel.loadMoreYouTubeItems(homePage?.continuation)
                 }
             }
     }
 
     if (selectedChip != null) {
         BackHandler {
-            selectChip(selectedChip)
+            viewModel.toggleChip(selectedChip)
         }
     }
 
-    val localGridItem: @Composable (LocalItem, String) -> Unit = { it, source ->
+    val localGridItem: @Composable (LocalItem) -> Unit = {
         when (it) {
             is Song -> SongGridItem(
                 song = it,
@@ -346,17 +423,9 @@ fun HomeScreen(
                             if (it.id == mediaMetadata?.id) {
                                 playerConnection.player.togglePlayPause()
                             } else {
-                                val song = it.toMediaMetadata()
-                                if (song.isLocal) {
-                                    playerConnection.playQueue(
-                                        ListQueue(
-                                            title = source,
-                                            items = listOf(song)
-                                        )
-                                    )
-                                } else {
-                                    playerConnection.playQueue(YouTubeQueue.radio(song))
-                                }
+                                playerConnection.playQueue(
+                                    YouTubeQueue.radio(it.toMediaMetadata()),
+                                )
                             }
                         },
                         onLongClick = {
@@ -382,7 +451,9 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
-                        onClick = { navController.navigate("album/${it.id}") },
+                        onClick = {
+                            navController.navigate("album/${it.id}")
+                        },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             menuState.show {
@@ -401,7 +472,9 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
-                        onClick = { navController.navigate("artist/${it.id}") },
+                        onClick = {
+                            navController.navigate("artist/${it.id}")
+                        },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             menuState.show {
@@ -477,21 +550,30 @@ fun HomeScreen(
 
     val quickPicksLocalized = stringResource(R.string.quick_picks)
     val homeSections = remember(
+        randomizeHomeOrder,
         randomSeed,
         selectedChip,
+        speedDialItems,
         quickPicks,
+        coversAndRemixes,
+        dailyDiscover,
         keepListening,
         accountPlaylists,
         forgottenFavorites,
+        communityPlaylists,
         similarRecommendations,
-        activeHomePage?.sections,
+        homePage?.sections,
         explorePage?.moodAndGenres,
         quickPicksLocalized
     ) {
         val list = mutableListOf<HomeSection>()
         val chipActive = selectedChip != null
 
+        if (!chipActive && speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
         if (!chipActive && quickPicks?.isNotEmpty() == true) list.add(HomeSection.QuickPicks)
+        if (!chipActive && coversAndRemixes?.items?.isNotEmpty() == true) list.add(HomeSection.CoversAndRemixes)
+        if (!chipActive && communityPlaylists?.isNotEmpty() == true) list.add(HomeSection.FromTheCommunity)
+        if (!chipActive && dailyDiscover?.isNotEmpty() == true) list.add(HomeSection.DailyDiscover)
         if (!chipActive && keepListening?.isNotEmpty() == true) list.add(HomeSection.KeepListening)
         if (!chipActive && accountPlaylists?.isNotEmpty() == true) list.add(HomeSection.AccountPlaylists)
         if (!chipActive && forgottenFavorites?.isNotEmpty() == true) list.add(HomeSection.ForgottenFavorites)
@@ -502,25 +584,57 @@ fun HomeScreen(
             }
         }
 
-        activeHomePage?.sections?.indices?.forEach { i ->
+        homePage?.sections?.indices?.forEach { i ->
             list.add(HomeSection.HomePageSection(i))
         }
 
         if (explorePage?.moodAndGenres != null) list.add(HomeSection.MoodAndGenres)
 
-        val defaultOrder = mapOf(
-            HomeSection.QuickPicks to 110,
-            HomeSection.KeepListening to 60,
-            HomeSection.AccountPlaylists to 50,
-            HomeSection.ForgottenFavorites to 40,
-            HomeSection.MoodAndGenres to 10
-        )
+        val sortedList = if (randomizeHomeOrder) {
+            list.sortedByDescending { section ->
+                val sectionRandom = Random(randomSeed + section.id.hashCode())
+                val base = when (section) {
+                    HomeSection.QuickPicks -> 700
+                    HomeSection.SpeedDial,
+                    HomeSection.DailyDiscover -> 500
+                    HomeSection.KeepListening,
+                    HomeSection.AccountPlaylists,
+                    HomeSection.ForgottenFavorites,
+                    HomeSection.FromTheCommunity -> 300
+                    else -> 100
+                }
+                val modifier = when (section) {
+                    HomeSection.QuickPicks -> 0
+                    HomeSection.SpeedDial,
+                    HomeSection.CoversAndRemixes,
+                    HomeSection.DailyDiscover -> sectionRandom.nextInt(-200, 400)
+                    HomeSection.KeepListening,
+                    HomeSection.AccountPlaylists,
+                    HomeSection.ForgottenFavorites,
+                    HomeSection.FromTheCommunity -> sectionRandom.nextInt(-100, 400)
+                    else -> sectionRandom.nextInt(-50, 50)
+                }
+                base + modifier
+            }
+        } else {
+            val defaultOrder = mapOf(
+                HomeSection.QuickPicks to 110,
+                HomeSection.SpeedDial to 100,
+                HomeSection.CoversAndRemixes to 85,
+                HomeSection.FromTheCommunity to 80,
+                HomeSection.DailyDiscover to 70,
+                HomeSection.KeepListening to 60,
+                HomeSection.AccountPlaylists to 50,
+                HomeSection.ForgottenFavorites to 40,
+                HomeSection.MoodAndGenres to 10
+            )
 
-        val sortedList = list.sortedByDescending { section ->
-            when (section) {
-                is HomeSection.SimilarRecommendation -> 30 - section.index
-                is HomeSection.HomePageSection -> 20 - section.index
-                else -> defaultOrder[section] ?: 0
+            list.sortedByDescending { section ->
+                when (section) {
+                    is HomeSection.SimilarRecommendation -> 30 - section.index
+                    is HomeSection.HomePageSection -> 20 - section.index
+                    else -> defaultOrder[section] ?: 0
+                }
             }
         }
 
@@ -533,19 +647,19 @@ fun HomeScreen(
         }
 
         val hasYouTubeQuickPicks = sortedList.any {
-            it is HomeSection.HomePageSection && isYouTubeQuickPicksSection(activeHomePage?.sections?.getOrNull(it.index))
+            it is HomeSection.HomePageSection && isYouTubeQuickPicksSection(homePage?.sections?.getOrNull(it.index))
         }
 
         val deduplicatedList = if (hasYouTubeQuickPicks && quickPicks.isNullOrEmpty()) {
             sortedList.filterNot { it == HomeSection.QuickPicks }
         } else if (hasYouTubeQuickPicks) {
-            sortedList.filterNot { it is HomeSection.HomePageSection && isYouTubeQuickPicksSection(activeHomePage?.sections?.getOrNull(it.index)) }
+            sortedList.filterNot { it is HomeSection.HomePageSection && isYouTubeQuickPicksSection(homePage?.sections?.getOrNull(it.index)) }
         } else {
             sortedList
         }
 
         val isQuickPicksSection: (HomeSection) -> Boolean = {
-            it == HomeSection.QuickPicks || (it is HomeSection.HomePageSection && isYouTubeQuickPicksSection(activeHomePage?.sections?.getOrNull(it.index)))
+            it == HomeSection.QuickPicks || (it is HomeSection.HomePageSection && isYouTubeQuickPicksSection(homePage?.sections?.getOrNull(it.index)))
         }
         val qpItems = deduplicatedList.filter(isQuickPicksSection)
         if (qpItems.isNotEmpty()) qpItems + deduplicatedList.filterNot(isQuickPicksSection)
@@ -628,21 +742,19 @@ fun HomeScreen(
                     IntOffset(0, (animatedFraction * maxOffsetPx).toInt())
                 }
             ) {
-                item(key = "chips_row") {
-                    val chips = activeHomePage?.chips
-                        ?.filter { !it.title.equals("Podcasts", ignoreCase = true) }
-                        ?.map { it to it.title }
-                        ?: emptyList()
-                    if (chips.isNotEmpty()) {
-                        ChipsRow(
-                            chips = chips,
-                            currentValue = selectedChip,
-                            onValueUpdate = { selectChip(it) }
-                        )
-                    }
+                item {
+                    ChipsRow(
+                        chips = homePage?.chips
+                            ?.filter { !it.title.equals("Podcasts", ignoreCase = true) }
+                            ?.map { it to it.title } ?: emptyList(),
+                        currentValue = selectedChip,
+                        onValueUpdate = {
+                            viewModel.toggleChip(it)
+                        }
+                    )
                 }
 
-                if (isLoading && activeHomePage?.chips.isNullOrEmpty()) {
+                if (isLoading && homePage?.chips.isNullOrEmpty()) {
                     item(key = "chips_shimmer") {
                         ShimmerHost {
                             LazyRow(
@@ -655,101 +767,8 @@ fun HomeScreen(
                                 items(5) {
                                     TextPlaceholder(
                                         height = 30.dp,
-                                        modifier = Modifier
-                                            .width(72.dp)
-                                            .clip(RoundedCornerShape(16.dp))
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (selectedChip == null) {
-                    item(key = "nav_tiles") {
-                        Row(
-                            modifier = Modifier
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .fillMaxWidth()
-                                .animateItem()
-                        ) {
-                            NavigationTile(
-                                title = stringResource(R.string.history),
-                                icon = Icons.Rounded.History,
-                                onClick = { navController.navigate("history") },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            NavigationTile(
-                                title = stringResource(R.string.stats),
-                                icon = Icons.AutoMirrored.Rounded.TrendingUp,
-                                onClick = { navController.navigate("stats") },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            if (isLoggedIn) {
-                                NavigationTile(
-                                    title = stringResource(R.string.account),
-                                    icon = Icons.Rounded.Person,
-                                    onClick = { navController.navigate("account") },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-
-                    if (isLoggedIn && !recentActivity.isNullOrEmpty()) {
-                        item(key = "recent_activity_title") {
-                            NavigationTitle(
-                                title = stringResource(R.string.recent_activity),
-                                modifier = Modifier.animateItem()
-                            )
-                        }
-                        item(key = "recent_activity_list") {
-                            LazyHorizontalGrid(
-                                state = recentActivityGridState,
-                                rows = GridCells.Fixed(4),
-                                flingBehavior = rememberSnapFlingBehavior(forgottenFavoritesLazyGridState),
-                                contentPadding = WindowInsets.systemBars
-                                    .only(WindowInsetsSides.Horizontal)
-                                    .asPaddingValues(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(60.dp * 4)
-                                    .padding(6.dp)
-                                    .animateItem()
-                            ) {
-                                items(
-                                    items = recentActivity!!,
-                                    key = { it.id }
-                                ) { item ->
-                                    YouTubeCardItem(
-                                        item = item,
-                                        onClick = {
-                                            when (item.type) {
-                                                PLAYLIST -> {
-                                                    val playlistDb = playlists
-                                                        ?.firstOrNull { it.playlist.browseId == item.id }
-
-                                                    if (playlistDb != null && playlistDb.songCount != 0)
-                                                        navController.navigate("local_playlist/${playlistDb.id}")
-                                                    else
-                                                        navController.navigate("online_playlist/${item.id}")
-                                                }
-
-                                                ALBUM -> navController.navigate("album/${item.id}")
-                                                ARTIST -> navController.navigate("artist/${item.id}")
-                                            }
-                                        },
-                                        isPlaying = isPlaying,
-                                        isActive = when (item.type) {
-                                            PLAYLIST -> queuePlaylistId == item.id
-                                            ALBUM -> queuePlaylistId == item.playlistId
-                                            ARTIST -> (queuePlaylistId == item.radioPlaylistId ||
-                                                queuePlaylistId == item.shufflePlaylistId ||
-                                                queuePlaylistId == item.playlistId)
-                                        },
+                                        shape = RoundedCornerShape(16.dp),
+                                        modifier = Modifier.width(72.dp)
                                     )
                                 }
                             }
@@ -759,18 +778,208 @@ fun HomeScreen(
 
                 homeSections.forEach { section ->
                     when (section) {
+                        HomeSection.SpeedDial -> {
+                            speedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
+                                item(key = "speed_dial_title") {
+                                    NavigationTitle(
+                                        title = "Speed dial",
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
+
+                                item(key = "speed_dial_list") {
+                                    val targetItemSize = 160.dp
+                                    val availableWidth = maxWidth - 32.dp
+                                    val columns = (availableWidth / targetItemSize).toInt().coerceAtLeast(3)
+                                    val rows = if (columns >= 6) 1 else if (columns >= 4) 2 else 3
+                                    val itemsPerPage = columns * rows
+                                    val itemWidth = availableWidth / columns
+
+                                    val totalSlots = items.size + 1
+                                    val pagerState = rememberPagerState(pageCount = { (totalSlots + itemsPerPage - 1) / itemsPerPage })
+
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .animateItem(),
+                                    ) {
+                                        HorizontalPager(
+                                            state = pagerState,
+                                            contentPadding = PaddingValues(horizontal = 16.dp),
+                                            pageSpacing = 16.dp,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(itemWidth * rows),
+                                        ) { page ->
+                                            Column(modifier = Modifier.fillMaxSize()) {
+                                                for (row in 0 until rows) {
+                                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                                        for (col in 0 until columns) {
+                                                            val itemIndex = row * columns + col
+                                                            val globalItemIndex = page * itemsPerPage + itemIndex
+                                                            val isRandomizeSlot = (globalItemIndex == itemsPerPage - 1)
+
+                                                            if (isRandomizeSlot) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .width(itemWidth)
+                                                                        .height(itemWidth)
+                                                                        .padding(4.dp)
+                                                                ) {
+                                                                    RandomizeGridItem(
+                                                                        isLoading = isRandomizing,
+                                                                        onClick = {
+                                                                            if (isRandomizing) {
+                                                                                randomizeJob?.cancel()
+                                                                            } else {
+                                                                                randomizeJob = scope.launch {
+                                                                                    val randomItem = viewModel.getRandomItem()
+                                                                                    if (randomItem != null) {
+                                                                                        when (randomItem) {
+                                                                                            is SongItem -> playerConnection.playQueue(
+                                                                                                YouTubeQueue(
+                                                                                                    randomItem.endpoint ?: WatchEndpoint(videoId = randomItem.id),
+                                                                                                    randomItem.toMediaMetadata()
+                                                                                                )
+                                                                                            )
+                                                                                            is AlbumItem -> navController.navigate("album/${randomItem.id}")
+                                                                                            is ArtistItem -> navController.navigate("artist/${randomItem.id}")
+                                                                                            is PlaylistItem -> {
+                                                                                                val rawType = pinnedSpeedDialItems
+                                                                                                    .find { it.id == randomItem.id }?.type
+                                                                                                if (rawType == "LOCAL_PLAYLIST") {
+                                                                                                    navController.navigate("local_playlist/${randomItem.id}")
+                                                                                                } else {
+                                                                                                    navController.navigate("online_playlist/${randomItem.id}")
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    )
+                                                                }
+                                                            } else {
+                                                                val actualIndex = if (globalItemIndex < itemsPerPage - 1) globalItemIndex else globalItemIndex - 1
+                                                                if (actualIndex < items.size) {
+                                                                    val item = items[actualIndex]
+                                                                    val isPinned = pinnedSpeedDialItems.any { it.id == item.id }
+
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .width(itemWidth)
+                                                                            .height(itemWidth)
+                                                                            .padding(4.dp)
+                                                                    ) {
+                                                                        SpeedDialGridItem(
+                                                                            item = item,
+                                                                            isPinned = isPinned,
+                                                                            isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
+                                                                            isPlaying = isPlaying,
+                                                                            modifier = Modifier
+                                                                                .fillMaxSize()
+                                                                                .combinedClickable(
+                                                                                    onClick = {
+                                                                                        when (item) {
+                                                                                            is SongItem -> playerConnection.playQueue(
+                                                                                                YouTubeQueue(
+                                                                                                    item.endpoint ?: WatchEndpoint(videoId = item.id),
+                                                                                                    item.toMediaMetadata()
+                                                                                                )
+                                                                                            )
+                                                                                            is AlbumItem -> navController.navigate("album/${item.id}")
+                                                                                            is ArtistItem -> navController.navigate("artist/${item.id}")
+                                                                                            is PlaylistItem -> {
+                                                                                                val rawType = pinnedSpeedDialItems
+                                                                                                    .find { it.id == item.id }?.type
+                                                                                                if (rawType == "LOCAL_PLAYLIST") {
+                                                                                                    navController.navigate("local_playlist/${item.id}")
+                                                                                                } else {
+                                                                                                    navController.navigate("online_playlist/${item.id}")
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    },
+                                                                                    onLongClick = {
+                                                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                                        menuState.show {
+                                                                                            when (item) {
+                                                                                                is SongItem -> YouTubeSongMenu(
+                                                                                                    song = item,
+                                                                                                    navController = navController,
+                                                                                                    onDismiss = menuState::dismiss
+                                                                                                )
+                                                                                                is AlbumItem -> YouTubeAlbumMenu(
+                                                                                                    albumItem = item,
+                                                                                                    navController = navController,
+                                                                                                    onDismiss = menuState::dismiss
+                                                                                                )
+                                                                                                is ArtistItem -> YouTubeArtistMenu(
+                                                                                                    artist = item,
+                                                                                                    onDismiss = menuState::dismiss
+                                                                                                )
+                                                                                                is PlaylistItem -> YouTubePlaylistMenu(
+                                                                                                    playlist = item,
+                                                                                                    coroutineScope = scope,
+                                                                                                    onDismiss = menuState::dismiss
+                                                                                                )
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                } else {
+                                                                    Spacer(modifier = Modifier.width(itemWidth))
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (pagerState.pageCount > 1) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .height(24.dp)
+                                                    .fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                repeat(pagerState.pageCount) { iteration ->
+                                                    val color = if (pagerState.currentPage == iteration)
+                                                        MaterialTheme.colorScheme.primary
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .padding(4.dp)
+                                                            .clip(CircleShape)
+                                                            .background(color)
+                                                            .size(8.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         HomeSection.QuickPicks -> {
-                            quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
+                            quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                                 item(key = "quick_picks_title") {
                                     val quickPicksTitle = stringResource(R.string.quick_picks)
-                                    HomeSectionHeader(
+                                    NavigationTitle(
                                         title = quickPicksTitle,
                                         modifier = Modifier.animateItem(),
                                         onPlayAllClick = {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = quickPicksTitle,
-                                                    items = quickPicksList.distinctBy { it.id }.map { it.toMediaMetadata() }
+                                                    items = quickPicks.distinctBy { it.id }.map { it.toMediaMetadata() }
                                                 )
                                             )
                                         }
@@ -778,63 +987,42 @@ fun HomeScreen(
                                 }
 
                                 item(key = "quick_picks_list") {
-                                    val distinctQuickPicks = remember(quickPicksList) {
-                                        quickPicksList.distinctBy { it.id }
-                                    }
-                                    val rows = min(4, distinctQuickPicks.size)
                                     LazyHorizontalGrid(
                                         state = quickPicksLazyGridState,
-                                        rows = GridCells.Fixed(rows),
+                                        rows = GridCells.Fixed(4),
                                         flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
-                                        contentPadding = WindowInsets.systemBars
-                                            .only(WindowInsetsSides.Horizontal)
-                                            .asPaddingValues(),
+                                        contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(ListItemHeight * rows)
+                                            .height(ListItemHeight * 4)
                                             .animateItem()
                                     ) {
                                         itemsIndexed(
-                                            items = distinctQuickPicks,
+                                            items = quickPicks.distinctBy { it.id },
                                             key = { _, it -> it.id }
                                         ) { index, originalSong ->
-                                            val song by database.song(originalSong.id)
-                                                .collectAsState(initial = originalSong)
-                                            val currentSong = song ?: originalSong
+                                            val song by database.song(originalSong.id).collectAsState(initial = originalSong)
+                                            val resolvedSong = song ?: originalSong
 
-                                            Box(
+                                            Surface(
+                                                shape = listItemShape(index = index % 4, count = 4),
+                                                color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                 modifier = Modifier
                                                     .width(horizontalLazyGridItemWidth)
-                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                                                    .clip(listItemShape(index = index % rows, count = rows))
-                                                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
                                             ) {
                                                 SongListItem(
-                                                    song = currentSong,
+                                                    song = resolvedSong,
+                                                    showInLibraryIcon = true,
+                                                    enableSwipeToQueue = false,
                                                     onPlay = {
-                                                        if (currentSong.id == mediaMetadata?.id) {
-                                                            playerConnection.player.togglePlayPause()
-                                                        } else {
-                                                            val meta = currentSong.toMediaMetadata()
-                                                            if (meta.isLocal) {
-                                                                playerConnection.playQueue(
-                                                                    ListQueue(
-                                                                        title = context.getString(R.string.quick_picks),
-                                                                        items = distinctQuickPicks.map { it.toMediaMetadata() },
-                                                                        startIndex = index
-                                                                    )
-                                                                )
-                                                            } else {
-                                                                playerConnection.playQueue(
-                                                                    YouTubeQueue.radio(meta)
-                                                                )
-                                                            }
-                                                        }
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue.radio(resolvedSong.toMediaMetadata())
+                                                        )
                                                     },
                                                     onSelectedChange = {},
                                                     inSelectMode = null,
                                                     isSelected = false,
-                                                    enableSwipeToQueue = false,
                                                     navController = navController,
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
@@ -845,8 +1033,192 @@ fun HomeScreen(
                             }
                         }
 
+                        HomeSection.CoversAndRemixes -> {
+                            coversAndRemixes?.takeIf { it.items.isNotEmpty() }?.let { mixSection ->
+                                val mixSongs = mixSection.items.filterIsInstance<SongItem>()
+                                if (mixSongs.isEmpty()) return@let
+
+                                item(key = "covers_and_remixes_title") {
+                                    val mixTitle = mixSection.title
+                                    NavigationTitle(
+                                        title = mixTitle,
+                                        modifier = Modifier.animateItem(),
+                                        onPlayAllClick = {
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = mixTitle,
+                                                    items = mixSongs.distinctBy { it.id }.map { it.toMediaMetadata() }
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+
+                                item(key = "covers_and_remixes_list") {
+                                    LazyHorizontalGrid(
+                                        state = rememberLazyGridState(),
+                                        rows = GridCells.Fixed(4),
+                                        contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(ListItemHeight * 4)
+                                            .animateItem()
+                                    ) {
+                                        itemsIndexed(
+                                            items = mixSongs.distinctBy { it.id },
+                                            key = { _, it -> it.id }
+                                        ) { index, song ->
+                                            Surface(
+                                                shape = listItemShape(index = index % 4, count = 4),
+                                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                                modifier = Modifier
+                                                    .width(horizontalLazyGridItemWidth)
+                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                            ) {
+                                                YouTubeListItem(
+                                                    item = song,
+                                                    isActive = song.id == mediaMetadata?.id,
+                                                    isPlaying = isPlaying,
+                                                    trailingContent = {
+                                                        IconButton(
+                                                            onClick = {
+                                                                menuState.show {
+                                                                    YouTubeSongMenu(
+                                                                        song = song,
+                                                                        navController = navController,
+                                                                        onDismiss = menuState::dismiss
+                                                                    )
+                                                                }
+                                                            }
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Rounded.MoreVert,
+                                                                contentDescription = null
+                                                            )
+                                                        }
+                                                    },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .combinedClickable(
+                                                            onClick = {
+                                                                if (song.id == mediaMetadata?.id) {
+                                                                    playerConnection.player.togglePlayPause()
+                                                                } else {
+                                                                    playerConnection.playQueue(
+                                                                        YouTubeQueue.radio(song.toMediaMetadata())
+                                                                    )
+                                                                }
+                                                            },
+                                                            onLongClick = {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                menuState.show {
+                                                                    YouTubeSongMenu(
+                                                                        song = song,
+                                                                        navController = navController,
+                                                                        onDismiss = menuState::dismiss
+                                                                    )
+                                                                }
+                                                            }
+                                                        )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        HomeSection.FromTheCommunity -> {
+                            communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                                item(key = "community_playlists_title") {
+                                    NavigationTitle(
+                                        title = "From the community",
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
+
+                                item(key = "community_playlists_content") {
+                                    LazyRow(
+                                        contentPadding = WindowInsets.systemBars
+                                            .only(WindowInsetsSides.Horizontal)
+                                            .asPaddingValues(),
+                                        modifier = Modifier.animateItem()
+                                    ) {
+                                        items(
+                                            items = playlists.distinctBy { it.id },
+                                            key = { it.id },
+                                        ) { item ->
+                                            ytGridItem(item)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        HomeSection.DailyDiscover -> {
+                            dailyDiscover?.takeIf { it.isNotEmpty() }?.let { discoverList ->
+                                item(key = "daily_discover_title") {
+                                    val title = "Your daily discover"
+                                    NavigationTitle(
+                                        title = title,
+                                        onPlayAllClick = {
+                                            val queueItems = discoverList.mapNotNull {
+                                                (it.recommendation as? SongItem)?.toMediaMetadata()
+                                            }
+                                            if (queueItems.isNotEmpty()) {
+                                                playerConnection.playQueue(
+                                                    ListQueue(
+                                                        title = title,
+                                                        items = queueItems
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                                item(key = "daily_discover_content") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(230.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val carouselState = rememberCarouselState { discoverList.size }
+                                        HorizontalUncontainedCarousel(
+                                            state = carouselState,
+                                            itemWidth = 320.dp,
+                                            itemSpacing = 8.dp,
+                                            contentPadding = PaddingValues(horizontal = 16.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(210.dp)
+                                        ) { i ->
+                                            val item = discoverList[i]
+                                            DailyDiscoverCard(
+                                                dailyDiscover = item,
+                                                onClick = {
+                                                    val song = item.recommendation as? SongItem
+                                                    val meta = song?.toMediaMetadata()
+                                                    if (meta != null) {
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue(
+                                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                                meta
+                                                            )
+                                                        )
+                                                    }
+                                                },
+                                                navController = navController,
+                                                modifier = Modifier.maskClip(MaterialTheme.shapes.large)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         HomeSection.KeepListening -> {
-                            keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
+                            keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
                                 item(key = "keep_listening_title") {
                                     NavigationTitle(
                                         title = stringResource(R.string.keep_listening),
@@ -855,23 +1227,21 @@ fun HomeScreen(
                                 }
 
                                 item(key = "keep_listening_list") {
-                                    val rows = if (keepListeningList.size > 6) 2 else 1
+                                    val rows = if (keepListening.size > 6) 2 else 1
                                     LazyHorizontalGrid(
                                         state = rememberLazyGridState(),
                                         rows = GridCells.Fixed(rows),
-                                        contentPadding = WindowInsets.systemBars
-                                            .only(WindowInsetsSides.Horizontal)
-                                            .asPaddingValues(),
+                                        contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height((GridThumbnailHeight + 24.dp + with(LocalDensity.current) {
+                                            .height((currentGridHeight + 24.dp + with(LocalDensity.current) {
                                                 MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
                                                     MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
                                             }) * rows)
                                             .animateItem()
                                     ) {
-                                        items(keepListeningList) {
-                                            localGridItem(it, stringResource(R.string.keep_listening))
+                                        items(keepListening) {
+                                            localGridItem(it)
                                         }
                                     }
                                 }
@@ -879,23 +1249,39 @@ fun HomeScreen(
                         }
 
                         HomeSection.AccountPlaylists -> {
-                            accountPlaylists?.takeIf { it.isNotEmpty() }?.let { playlistsList ->
+                            accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
                                 item(key = "account_playlists_title") {
                                     NavigationTitle(
                                         label = stringResource(R.string.your_youtube_playlists),
-                                        title = accountName.ifBlank { stringResource(R.string.account) },
+                                        title = accountName,
                                         thumbnail = {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Person,
-                                                contentDescription = null,
-                                                modifier = Modifier
-                                                    .size(ListThumbnailSize)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                                    .padding(8.dp)
-                                            )
+                                            if (url != null) {
+                                                AsyncImage(
+                                                    model = ImageRequest.Builder(LocalContext.current)
+                                                        .data(url)
+                                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                                        .diskCacheKey(url)
+                                                        .crossfade(false)
+                                                        .build(),
+                                                    placeholder = painterResource(id = R.drawable.person),
+                                                    error = painterResource(id = R.drawable.person),
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .size(ListThumbnailSize)
+                                                        .clip(CircleShape)
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Person,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(ListThumbnailSize)
+                                                )
+                                            }
                                         },
-                                        onClick = { navController.navigate("account") },
+                                        onClick = {
+                                            navController.navigate("account")
+                                        },
                                         modifier = Modifier.animateItem()
                                     )
                                 }
@@ -908,7 +1294,7 @@ fun HomeScreen(
                                         modifier = Modifier.animateItem()
                                     ) {
                                         items(
-                                            items = playlistsList.distinctBy { it.id },
+                                            items = accountPlaylists.distinctBy { it.id },
                                             key = { it.id },
                                         ) { item ->
                                             ytGridItem(item)
@@ -919,17 +1305,17 @@ fun HomeScreen(
                         }
 
                         HomeSection.ForgottenFavorites -> {
-                            forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
+                            forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
                                 item(key = "forgotten_favorites_title") {
                                     val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
-                                    HomeSectionHeader(
+                                    NavigationTitle(
                                         title = forgottenFavoritesTitle,
                                         modifier = Modifier.animateItem(),
                                         onPlayAllClick = {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = forgottenFavoritesTitle,
-                                                    items = forgottenFavoritesList.distinctBy { it.id }.map { it.toMediaMetadata() }
+                                                    items = forgottenFavorites.distinctBy { it.id }.map { it.toMediaMetadata() }
                                                 )
                                             )
                                         }
@@ -937,16 +1323,11 @@ fun HomeScreen(
                                 }
 
                                 item(key = "forgotten_favorites_list") {
-                                    val distinctForgotten = remember(forgottenFavoritesList) {
-                                        forgottenFavoritesList.distinctBy { it.id }
-                                    }
-                                    val rows = min(4, distinctForgotten.size)
+                                    val rows = min(4, forgottenFavorites.size)
                                     LazyHorizontalGrid(
                                         state = forgottenFavoritesLazyGridState,
                                         rows = GridCells.Fixed(rows),
-                                        contentPadding = WindowInsets.systemBars
-                                            .only(WindowInsetsSides.Horizontal)
-                                            .asPaddingValues(),
+                                        contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
                                         flingBehavior = rememberSnapFlingBehavior(forgottenFavoritesSnapLayoutInfoProvider),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -954,46 +1335,31 @@ fun HomeScreen(
                                             .animateItem()
                                     ) {
                                         itemsIndexed(
-                                            items = distinctForgotten,
+                                            items = forgottenFavorites.distinctBy { it.id },
                                             key = { _, it -> it.id }
                                         ) { index, originalSong ->
-                                            val song by database.song(originalSong.id)
-                                                .collectAsState(initial = originalSong)
-                                            val currentSong = song ?: originalSong
+                                            val song by database.song(originalSong.id).collectAsState(initial = originalSong)
+                                            val resolvedSong = song ?: originalSong
 
-                                            Box(
+                                            Surface(
+                                                shape = listItemShape(index = index % rows, count = rows),
+                                                color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                 modifier = Modifier
                                                     .width(horizontalLazyGridItemWidth)
-                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                                                    .clip(listItemShape(index = index % rows, count = rows))
-                                                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
                                             ) {
                                                 SongListItem(
-                                                    song = currentSong,
+                                                    song = resolvedSong,
+                                                    showInLibraryIcon = true,
+                                                    enableSwipeToQueue = false,
                                                     onPlay = {
-                                                        if (currentSong.id == mediaMetadata?.id) {
-                                                            playerConnection.player.togglePlayPause()
-                                                        } else {
-                                                            val meta = currentSong.toMediaMetadata()
-                                                            if (meta.isLocal) {
-                                                                playerConnection.playQueue(
-                                                                    ListQueue(
-                                                                        title = context.getString(R.string.forgotten_favorites),
-                                                                        items = distinctForgotten.map { it.toMediaMetadata() },
-                                                                        startIndex = index
-                                                                    )
-                                                                )
-                                                            } else {
-                                                                playerConnection.playQueue(
-                                                                    YouTubeQueue.radio(meta)
-                                                                )
-                                                            }
-                                                        }
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue.radio(resolvedSong.toMediaMetadata())
+                                                        )
                                                     },
                                                     onSelectedChange = {},
                                                     inSelectMode = null,
                                                     isSelected = false,
-                                                    enableSwipeToQueue = false,
                                                     navController = navController,
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
@@ -1013,8 +1379,7 @@ fun HomeScreen(
                                         title = recommendation.title.title,
                                         thumbnail = recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
                                             {
-                                                val shape = if (recommendation.title is Artist) CircleShape
-                                                else RoundedCornerShape(ThumbnailCornerRadius)
+                                                val shape = if (recommendation.title is Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                                                 AsyncImage(
                                                     model = thumbnailUrl,
                                                     contentDescription = null,
@@ -1043,10 +1408,7 @@ fun HomeScreen(
                                             .asPaddingValues(),
                                         modifier = Modifier.animateItem()
                                     ) {
-                                        items(
-                                            items = recommendation.items.distinctBy { it.id },
-                                            key = { it.id }
-                                        ) { item ->
+                                        items(recommendation.items) { item ->
                                             ytGridItem(item)
                                         }
                                     }
@@ -1055,7 +1417,7 @@ fun HomeScreen(
                         }
 
                         is HomeSection.HomePageSection -> {
-                            val sectionData = activeHomePage?.sections?.getOrNull(section.index)
+                            val sectionData = homePage?.sections?.getOrNull(section.index)
                             sectionData?.let {
                                 val sectionSongs = sectionData.items.filterIsInstance<SongItem>()
                                 val hasPlayableSongs = sectionSongs.isNotEmpty()
@@ -1064,13 +1426,12 @@ fun HomeScreen(
                                     !sectionData.title.equals("Listen together", ignoreCase = true)
 
                                 item(key = "home_section_title_${section.index}") {
-                                    HomeSectionHeader(
+                                    NavigationTitle(
                                         title = sectionData.title,
                                         label = sectionData.label,
                                         thumbnail = sectionData.thumbnail?.let { thumbnailUrl ->
                                             {
-                                                val shape = if (sectionData.endpoint?.isArtistEndpoint == true) CircleShape
-                                                else RoundedCornerShape(ThumbnailCornerRadius)
+                                                val shape = if (sectionData.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                                                 AsyncImage(
                                                     model = thumbnailUrl,
                                                     contentDescription = null,
@@ -1108,31 +1469,27 @@ fun HomeScreen(
 
                                 if (isSongsOnlySection) {
                                     item(key = "home_section_list_${section.index}") {
-                                        val distinctSongs = remember(sectionSongs) {
-                                            sectionSongs.distinctBy { it.id }
-                                        }
-                                        val rows = min(4, distinctSongs.size)
                                         LazyHorizontalGrid(
                                             state = rememberLazyGridState(),
-                                            rows = GridCells.Fixed(rows),
+                                            rows = GridCells.Fixed(4),
                                             contentPadding = WindowInsets.systemBars
                                                 .only(WindowInsetsSides.Horizontal)
                                                 .asPaddingValues(),
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(ListItemHeight * rows)
+                                                .height(ListItemHeight * 4)
                                                 .animateItem()
                                         ) {
                                             itemsIndexed(
-                                                items = distinctSongs,
+                                                items = sectionSongs.distinctBy { it.id },
                                                 key = { _, it -> it.id }
                                             ) { index, song ->
-                                                Box(
+                                                Surface(
+                                                    shape = listItemShape(index = index % 4, count = 4),
+                                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                                                     modifier = Modifier
                                                         .width(horizontalLazyGridItemWidth)
-                                                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                                                        .clip(listItemShape(index = index % rows, count = rows))
-                                                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                                        .padding(horizontal = 4.dp, vertical = 1.dp)
                                                 ) {
                                                     YouTubeListItem(
                                                         item = song,
@@ -1192,10 +1549,7 @@ fun HomeScreen(
                                                 .asPaddingValues(),
                                             modifier = Modifier.animateItem()
                                         ) {
-                                            items(
-                                                items = sectionData.items.distinctBy { it.id },
-                                                key = { it.id }
-                                            ) { item ->
+                                            items(sectionData.items) { item ->
                                                 if (item is SongItem) {
                                                     YouTubeGridItem(
                                                         item = item,
@@ -1244,10 +1598,7 @@ fun HomeScreen(
                                                 .asPaddingValues(),
                                             modifier = Modifier.animateItem()
                                         ) {
-                                            items(
-                                                items = sectionData.items.distinctBy { it.id },
-                                                key = { it.id }
-                                            ) { item ->
+                                            items(sectionData.items) { item ->
                                                 ytGridItem(item)
                                             }
                                         }
@@ -1261,7 +1612,9 @@ fun HomeScreen(
                                 item(key = "mood_and_genres_title") {
                                     NavigationTitle(
                                         title = stringResource(R.string.mood_and_genres),
-                                        onClick = { navController.navigate("mood_and_genres") },
+                                        onClick = {
+                                            navController.navigate("mood_and_genres")
+                                        },
                                         modifier = Modifier.animateItem()
                                     )
                                 }
@@ -1291,7 +1644,7 @@ fun HomeScreen(
                     }
                 }
 
-                if (isLoading || (activeHomePage?.continuation != null && activeHomePage?.sections?.isNotEmpty() == true)) {
+                if (isLoading || (homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true)) {
                     item(key = "loading_shimmer") {
                         ShimmerHost(
                             modifier = Modifier.animateItem()
@@ -1325,10 +1678,10 @@ fun HomeScreen(
                                     repeat(2) {
                                         TextPlaceholder(
                                             height = MoodAndGenresButtonHeight,
+                                            shape = RoundedCornerShape(6.dp),
                                             modifier = Modifier
                                                 .padding(horizontal = 12.dp)
                                                 .width(200.dp)
-                                                .clip(RoundedCornerShape(6.dp))
                                         )
                                     }
                                 }
@@ -1345,7 +1698,7 @@ fun HomeScreen(
             HideOnScrollFAB(
                 visible = allLocalItems.isNotEmpty() || allYtItems.isNotEmpty(),
                 lazyListState = lazylistState,
-                icon = Icons.Rounded.Casino,
+                icon = R.drawable.shuffle,
                 onClick = {
                     val local = when {
                         allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
@@ -1358,7 +1711,7 @@ fun HomeScreen(
                                 is Song -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
                                 is Album -> {
                                     val songs = withContext(Dispatchers.IO) {
-                                        database.albumSongs(luckyItem.id).first()
+                                        database.albumWithSongs(luckyItem.id).first()?.songs.orEmpty()
                                     }
                                     if (songs.isNotEmpty()) {
                                         playerConnection.playQueue(
@@ -1377,10 +1730,10 @@ fun HomeScreen(
                                 is SongItem -> playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
                                 is AlbumItem -> playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.playlistId))
                                 is ArtistItem -> luckyItem.radioEndpoint?.let {
-                                    playerConnection.playQueue(YouTubeQueue(it), isRadio = true)
+                                    playerConnection.playQueue(YouTubeQueue(it))
                                 }
                                 is PlaylistItem -> luckyItem.playEndpoint?.let {
-                                    playerConnection.playQueue(YouTubeQueue(it), isRadio = true)
+                                    playerConnection.playQueue(YouTubeQueue(it))
                                 }
                             }
                         }
@@ -1392,67 +1745,136 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeSectionHeader(
-    title: String,
+fun SpeedDialGridItem(
+    item: YTItem,
+    isPinned: Boolean,
+    isActive: Boolean,
+    isPlaying: Boolean,
     modifier: Modifier = Modifier,
-    label: String? = null,
-    thumbnail: (@Composable () -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
-    onPlayAllClick: (() -> Unit)? = null,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    val shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(16.dp)
+    Box(
         modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .clickable(enabled = onClick != null) {
-                onClick?.invoke()
-            }
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .fillMaxSize()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        thumbnail?.invoke()
+        AsyncImage(
+            model = item.thumbnail?.resize(544, 544),
+            contentDescription = item.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
 
-        Column(
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.weight(1f)
-        ) {
-            label?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelLarge,
-                    overflow = TextOverflow.Ellipsis,
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.0f to Color.Transparent,
+                        0.5f to Color.Black.copy(alpha = 0.2f),
+                        1.0f to Color.Black.copy(alpha = 0.85f)
+                    )
                 )
-            }
+        )
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
-            )
-        }
-
-        if (onPlayAllClick != null) {
-            FilledTonalIconButton(
-                onClick = onPlayAllClick,
-                modifier = Modifier.size(36.dp)
+        if (isPinned) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PlayArrow,
-                    contentDescription = stringResource(R.string.play)
+                    imageVector = Icons.Rounded.PushPin,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(13.dp)
                 )
             }
         }
 
-        if (onClick != null) {
+        if (item is AlbumItem || item is PlaylistItem) {
             Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                imageVector = if (item is AlbumItem) Icons.Rounded.Album else Icons.AutoMirrored.Rounded.QueueMusic,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = Color.White.copy(alpha = 0.85f),
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(6.dp)
+                    .size(16.dp)
             )
+        }
+
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = if (item is ArtistItem) TextAlign.Center else TextAlign.Start,
+            modifier = Modifier
+                .align(if (item is ArtistItem) Alignment.BottomCenter else Alignment.BottomStart)
+                .padding(horizontal = 8.dp, vertical = 8.dp)
+        )
+
+        PlayingIndicatorBox(
+            isActive = isActive,
+            playWhenReady = isPlaying,
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    color = Color.Black.copy(alpha = ActiveBoxAlpha),
+                    shape = shape
+                )
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun RandomizeGridItem(
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .combinedClickable(onClick = onClick)
+    ) {
+        if (isLoading) {
+            ContainedLoadingIndicator()
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Casino,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Randomize",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
