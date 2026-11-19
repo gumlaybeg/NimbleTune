@@ -9,6 +9,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.random.Random
@@ -17,10 +20,12 @@ import kotlin.random.Random
 fun TextPlaceholder(
     modifier: Modifier = Modifier,
     height: Dp = 16.dp,
+    shape: Shape = RectangleShape,
 ) {
     Spacer(
         modifier = modifier
             .padding(vertical = 4.dp)
+            .clip(shape)
             .background(MaterialTheme.colorScheme.onSurface)
             .fillMaxWidth(remember { 0.25f + Random.nextFloat() * 0.5f })
             .height(height)

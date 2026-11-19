@@ -35,6 +35,16 @@ val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
 val ProxyUrlKey = stringPreferencesKey("proxyUrl")
 val ProxyTypeKey = stringPreferencesKey("proxyType")
 
+val QuickPicksKey = stringPreferencesKey("quickPicks")
+enum class QuickPicks {
+    QUICK_PICKS, LAST_LISTEN
+}
+val HideExplicitKey = booleanPreferencesKey("hideExplicit")
+val HideVideoSongsKey = booleanPreferencesKey("hideVideoSongs")
+val HideYoutubeShortsKey = booleanPreferencesKey("hideYoutubeShorts")
+val RandomizeHomeOrderKey = booleanPreferencesKey("randomizeHomeOrder")
+val PinnedSpeedDialKey = stringPreferencesKey("pinnedSpeedDial")
+
 
 /**
  * Player & audio
