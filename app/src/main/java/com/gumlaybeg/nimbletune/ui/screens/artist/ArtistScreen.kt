@@ -661,17 +661,13 @@ fun ArtistScreen(
                                     shapes = if (hasRadio || hasShuffle) {
                                         ButtonGroupDefaults.connectedLeadingButtonShapes()
                                     } else {
-                                        ToggleButtonDefaults.shapes()
+                                        ToggleButtonDefaults.shapesFor(ToggleButtonDefaults.size)
                                     },
-                                    colors = ToggleButtonDefaults.toggleButtonColors(
-                                        containerColor = if (isSubscribed)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                        contentColor = if (isSubscribed)
-                                            MaterialTheme.colorScheme.onPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    colors = ToggleButtonDefaults.colors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                        checkedContentColor = MaterialTheme.colorScheme.onPrimary,
                                     )
                                 ) {
                                     Icon(
@@ -714,9 +710,9 @@ fun ArtistScreen(
                                         } else {
                                             ButtonGroupDefaults.connectedTrailingButtonShapes()
                                         },
-                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                        colors = ToggleButtonDefaults.colors(
                                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     ) {
                                         Icon(
@@ -760,9 +756,9 @@ fun ArtistScreen(
                                             .weight(1f)
                                             .semantics { role = Role.Button },
                                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                                        colors = ToggleButtonDefaults.toggleButtonColors(
+                                        colors = ToggleButtonDefaults.colors(
                                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     ) {
                                         Icon(
