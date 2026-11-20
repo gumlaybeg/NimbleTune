@@ -12,6 +12,8 @@ import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationChannelCompat
@@ -165,6 +167,7 @@ class MusicService : MediaLibraryService(),
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
 
     private val scope = CoroutineScope(Dispatchers.Main) + Job()
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val binder = MusicBinder()
 
     private lateinit var connectivityManager: ConnectivityManager
@@ -333,26 +336,35 @@ class MusicService : MediaLibraryService(),
                                     Toast.LENGTH_SHORT
                                 ).show()
 
-                                val currentPosition = player.currentPosition
-                                val wasPlaying = player.isPlaying
+                                val retryIndex = player.currentMediaItemIndex
+                                val currentPosition = player.currentPosition.coerceAtLeast(0L)
+                                val wasPlaying = player.playWhenReady || player.isPlaying
 
-                                player.removeMediaItem(player.currentMediaItemIndex)
-                                player.addMediaItem(player.currentMediaItemIndex, currentMediaItem)
-                                player.seekTo(player.currentMediaItemIndex, currentPosition)
-
-                                if (wasPlaying) {
-                                    player.prepare()
-                                    player.play()
-                                } else {
-                                    player.prepare()
+                                mainHandler.post {
+                                    if (player.isReleased) return@post
+                                    if (retryIndex in 0 until player.mediaItemCount) {
+                                        player.replaceMediaItem(retryIndex, currentMediaItem)
+                                        player.seekTo(retryIndex, currentPosition)
+                                        player.prepare()
+                                        if (wasPlaying) {
+                                            player.play()
+                                        }
+                                    } else if (dataStore.get(SkipOnErrorKey, true)) {
+                                        skipOnError()
+                                    } else {
+                                        stopOnError()
+                                    }
                                 }
                                 return
                             } else {
                                 consecutivePlaybackErr = 0
-                                if (dataStore.get(SkipOnErrorKey, true)) {
-                                    skipOnError()
-                                } else {
-                                    stopOnError()
+                                mainHandler.post {
+                                    if (player.isReleased) return@post
+                                    if (dataStore.get(SkipOnErrorKey, true)) {
+                                        skipOnError()
+                                    } else {
+                                        stopOnError()
+                                    }
                                 }
                                 return
                             }
@@ -371,11 +383,13 @@ class MusicService : MediaLibraryService(),
                                 ).show()
                             }
                             else -> {
-                                // Default error handling
-                                if (dataStore.get(SkipOnErrorKey, true)) {
-                                    skipOnError()
-                                } else {
-                                    stopOnError()
+                                mainHandler.post {
+                                    if (player.isReleased) return@post
+                                    if (dataStore.get(SkipOnErrorKey, true)) {
+                                        skipOnError()
+                                    } else {
+                                        stopOnError()
+                                    }
                                 }
 
                                 Toast.makeText(
@@ -399,8 +413,12 @@ class MusicService : MediaLibraryService(),
                         super.onMediaItemTransition(mediaItem, reason)
 
                         if (player.isPlaying && reason == MEDIA_ITEM_TRANSITION_REASON_SEEK) {
-                            player.prepare()
-                            player.play()
+                            mainHandler.post {
+                                if (!player.isReleased && player.isPlaying) {
+                                    player.prepare()
+                                    player.play()
+                                }
+                            }
                         }
 
                         // Auto load more songs
@@ -413,19 +431,26 @@ class MusicService : MediaLibraryService(),
                         ) {
                             scope.launch(SilentHandler) {
                                 val mediaItems = YouTubeQueue(WatchEndpoint(songId)).nextPage()
-                                if (player.playbackState != STATE_IDLE) {
+                                if (!player.isReleased && player.playbackState != STATE_IDLE) {
                                     queueBoard.enqueueEnd(mediaItems.drop(1), this@MusicService, isRadio = true)
                                 }
                             }
                         }
 
                         // Loop back to beginning of queue when shuffle AND repeat all
-                        if (player.currentMediaItemIndex == 0 && lastMediaItemIndex == player.mediaItemCount - 1 &&
+                        val shouldReshuffle = player.currentMediaItemIndex == 0 &&
+                            lastMediaItemIndex == player.mediaItemCount - 1 &&
                             (reason == MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == MEDIA_ITEM_TRANSITION_REASON_SEEK) &&
                             isShuffleEnabled.value && player.repeatMode == REPEAT_MODE_ALL
-                        ) {
-                            queueBoard.shuffleCurrent(this@MusicService, false) // reshuffle queue
-                            queueBoard.setCurrQueue(this@MusicService)
+
+                        if (shouldReshuffle) {
+                            mainHandler.post {
+                                if (!player.isReleased) {
+                                    queueBoard.shuffleCurrent(this@MusicService, false) // reshuffle queue
+                                    queueBoard.setCurrQueue(this@MusicService)
+                                    updateNotification()
+                                }
+                            }
                         }
                         lastMediaItemIndex = player.currentMediaItemIndex
 
@@ -515,7 +540,7 @@ class MusicService : MediaLibraryService(),
         initQueue()
         CoroutineScope(Dispatchers.Main).launch {
             val queuePos = queueBoard.setCurrQueue(this@MusicService, false)
-            if (queuePos != null) {
+            if (queuePos != null && !player.isReleased && queuePos in 0 until player.mediaItemCount) {
                 player.seekTo(queuePos, dataStore.get(LastPosKey, C.TIME_UNSET))
                 dataStore.edit { settings ->
                     settings[LastPosKey] = C.TIME_UNSET
@@ -592,10 +617,14 @@ class MusicService : MediaLibraryService(),
     }
 
     fun skipOnError() {
+        if (player.isReleased) return
         consecutivePlaybackErr++
         val nextWindowIndex = player.nextMediaItemIndex
 
-        if (consecutivePlaybackErr <= MAX_CONSECUTIVE_ERR && nextWindowIndex != C.INDEX_UNSET) {
+        if (consecutivePlaybackErr <= MAX_CONSECUTIVE_ERR &&
+            nextWindowIndex != C.INDEX_UNSET &&
+            nextWindowIndex in 0 until player.mediaItemCount
+        ) {
             player.seekTo(nextWindowIndex, C.TIME_UNSET)
             player.prepare()
             player.play()
@@ -610,6 +639,7 @@ class MusicService : MediaLibraryService(),
     }
 
     fun stopOnError() {
+        if (player.isReleased) return
         player.pause()
         Toast.makeText(this@MusicService, getString(R.string.err_stop_on_error), Toast.LENGTH_LONG).show()
     }
@@ -1043,9 +1073,13 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-        if (player.shuffleModeEnabled) {
-            triggerShuffle()
-            player.shuffleModeEnabled = false
+        if (shuffleModeEnabled) {
+            mainHandler.post {
+                if (!player.isReleased && player.shuffleModeEnabled) {
+                    triggerShuffle()
+                    player.shuffleModeEnabled = false
+                }
+            }
         }
     }
 
@@ -1142,9 +1176,15 @@ class MusicService : MediaLibraryService(),
         }
 
         Timber.tag("MusicService").e("Terminating MusicService.")
+        mainHandler.removeCallbacksAndMessages(null)
         deInitQueue()
-        stopForeground(STOP_FOREGROUND_DETACH)
+        try {
+            stopForeground(STOP_FOREGROUND_DETACH)
+        } catch (e: Exception) {
+            Timber.tag("MusicService").e(e, "Failed to stop foreground on destroy")
+        }
 
+        playerNotificationManager.setPlayer(null)
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)

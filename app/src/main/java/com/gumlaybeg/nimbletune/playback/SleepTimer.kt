@@ -1,5 +1,6 @@
 package com.gumlaybeg.nimbletune.playback
 
+import android.os.Handler
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +17,7 @@ class SleepTimer(
     private val scope: CoroutineScope,
     val player: Player,
 ) : Player.Listener {
+    private val mainHandler = Handler(player.applicationLooper)
     private var sleepTimerJob: Job? = null
     var triggerTime by mutableLongStateOf(-1L)
         private set
@@ -42,6 +44,7 @@ class SleepTimer(
     fun clear() {
         sleepTimerJob?.cancel()
         sleepTimerJob = null
+        mainHandler.removeCallbacksAndMessages(null)
         pauseWhenSongEnd = false
         triggerTime = -1L
     }
@@ -49,14 +52,14 @@ class SleepTimer(
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         if (pauseWhenSongEnd) {
             pauseWhenSongEnd = false
-            player.pause()
+            mainHandler.post { player.pause() }
         }
     }
 
     override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
         if (playbackState == Player.STATE_ENDED && pauseWhenSongEnd) {
             pauseWhenSongEnd = false
-            player.pause()
+            mainHandler.post { player.pause() }
         }
     }
 }

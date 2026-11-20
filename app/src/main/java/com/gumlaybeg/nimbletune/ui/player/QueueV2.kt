@@ -317,8 +317,11 @@ fun QueueV2(
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { dismissValue ->
                                 if (dismissValue != SwipeToDismissBoxValue.Settled) {
-                                    if (queueBoard.removeCurrentQueueSong(currentItem.firstPeriodIndex, playerConnection.service)) {
-                                        playerConnection.player.removeMediaItem(currentItem.firstPeriodIndex)
+                                    val idx = currentItem.firstPeriodIndex
+                                    if (idx in 0 until playerConnection.player.mediaItemCount &&
+                                        queueBoard.removeCurrentQueueSong(idx, playerConnection.service)
+                                    ) {
+                                        playerConnection.player.removeMediaItem(idx)
                                     }
                                     true
                                 } else false
@@ -372,9 +375,12 @@ fun QueueV2(
                                             if (index == currentWindowIndex) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
-                                                playerConnection.player.seekToDefaultPosition(window.firstPeriodIndex)
-                                                playerConnection.player.prepare()
-                                                playerConnection.player.playWhenReady = true
+                                                val targetIdx = window.firstPeriodIndex
+                                                if (targetIdx in 0 until playerConnection.player.mediaItemCount) {
+                                                    playerConnection.player.seekToDefaultPosition(targetIdx)
+                                                    playerConnection.player.prepare()
+                                                    playerConnection.player.playWhenReady = true
+                                                }
                                             }
                                         }
                                 )
