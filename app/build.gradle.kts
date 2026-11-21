@@ -138,6 +138,15 @@ tasks.matching { it.name.contains("AarMetadata") }.configureEach {
     enabled = false
 }
 
+val kotlinVersion = libs.versions.kotlin.get()
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+            useVersion(kotlinVersion)
+        }
+    }
+}
+
 dependencies {
     implementation(libs.guava)
     implementation(libs.coroutines.guava)

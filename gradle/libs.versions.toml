@@ -12,7 +12,7 @@ ktor = "3.1.1"
 ksp = "2.1.0-1.0.29"
 taglib = "1.0.0"
 newpipeExtractor = "v0.26.5"
-backdrop = "1.0.6"
+backdrop = "1.0.2"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }

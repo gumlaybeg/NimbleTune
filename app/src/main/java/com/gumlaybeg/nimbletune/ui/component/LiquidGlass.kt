@@ -13,12 +13,15 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.emptyBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.colorControls
@@ -86,7 +89,7 @@ fun Modifier.lightweightLiquidGlass(
         .then(
             if (useGlass) {
                 Modifier.drawBackdrop(
-                    backdrop = emptyBackdrop(),
+                    backdrop = NoOpBackdrop,
                     shape = { shape },
                     effects = {},
                     highlight = { Highlight.Default },
@@ -104,7 +107,7 @@ fun Modifier.liquidGlassRim(shape: CornerBasedShape): Modifier {
     if (!LocalLiquidGlassEnabled.current || !isGlassSupported()) return this
     return then(
         Modifier.drawBackdrop(
-            backdrop = emptyBackdrop(),
+            backdrop = NoOpBackdrop,
             shape = { shape },
             effects = {},
             highlight = { Highlight.Default },
@@ -164,4 +167,14 @@ fun Modifier.liquidGlass(
         },
         exportedBackdrop = exportedBackdrop,
     )
+}
+
+private object NoOpBackdrop : Backdrop {
+    override val isCoordinatesDependent: Boolean = false
+
+    override fun DrawScope.drawBackdrop(
+        density: Density,
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+    ) = Unit
 }
