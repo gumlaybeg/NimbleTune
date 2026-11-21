@@ -793,6 +793,7 @@ fun BottomSheetPlayer(
     state: BottomSheetState,
     navController: NavController,
     modifier: Modifier = Modifier,
+    showCollapsedContent: Boolean = true,
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -922,11 +923,14 @@ fun BottomSheetPlayer(
             playerConnection.player.clearMediaItems()
             playerConnection.service.deInitQueue()
         },
+        showCollapsedContent = showCollapsedContent,
         collapsedContent = {
-            MiniPlayer(
-                position = position,
-                duration = duration
-            )
+            if (showCollapsedContent) {
+                MiniPlayer(
+                    position = position,
+                    duration = duration
+                )
+            }
         }
     ) {
         AnimatedVisibility(

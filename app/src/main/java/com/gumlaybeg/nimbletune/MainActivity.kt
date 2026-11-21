@@ -93,7 +93,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
-import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -121,8 +120,10 @@ import com.gumlaybeg.nimbletune.constants.DynamicThemeKey
 import com.gumlaybeg.nimbletune.constants.EnabledTabsKey
 import com.gumlaybeg.nimbletune.constants.ExcludedScanPathsKey
 import com.gumlaybeg.nimbletune.constants.FirstSetupPassed
+import com.gumlaybeg.nimbletune.constants.GlassPerformanceKey
 import com.gumlaybeg.nimbletune.constants.LibraryFilter
 import com.gumlaybeg.nimbletune.constants.LibraryFilterKey
+import com.gumlaybeg.nimbletune.constants.LiquidGlassKey
 import com.gumlaybeg.nimbletune.constants.LocalLibraryEnableKey
 import com.gumlaybeg.nimbletune.constants.LookupYtmArtistsKey
 import com.gumlaybeg.nimbletune.constants.MiniPlayerHeight
@@ -133,6 +134,8 @@ import com.gumlaybeg.nimbletune.constants.PauseSearchHistoryKey
 import com.gumlaybeg.nimbletune.constants.PersistentQueueKey
 import com.gumlaybeg.nimbletune.constants.PlayerBackgroundStyleKey
 import com.gumlaybeg.nimbletune.constants.PureBlackKey
+import com.gumlaybeg.nimbletune.constants.ReduceAnimationKey
+import com.gumlaybeg.nimbletune.constants.ReduceDynamicBlurKey
 import com.gumlaybeg.nimbletune.constants.ScanPathsKey
 import com.gumlaybeg.nimbletune.constants.ScannerImpl
 import com.gumlaybeg.nimbletune.constants.ScannerImplKey
@@ -143,27 +146,38 @@ import com.gumlaybeg.nimbletune.constants.SearchSource
 import com.gumlaybeg.nimbletune.constants.SearchSourceKey
 import com.gumlaybeg.nimbletune.constants.SlimNavBarKey
 import com.gumlaybeg.nimbletune.constants.StopMusicOnTaskClearKey
+import com.gumlaybeg.nimbletune.constants.SwipeToSkip
 import com.gumlaybeg.nimbletune.db.MusicDatabase
 import com.gumlaybeg.nimbletune.db.entities.SearchHistory
 import com.gumlaybeg.nimbletune.extensions.toEnum
+import com.gumlaybeg.nimbletune.extensions.togglePlayPause
 import com.gumlaybeg.nimbletune.playback.DownloadUtil
 import com.gumlaybeg.nimbletune.playback.MusicService
 import com.gumlaybeg.nimbletune.playback.MusicService.MusicBinder
 import com.gumlaybeg.nimbletune.playback.PlayerConnection
 import com.gumlaybeg.nimbletune.ui.component.BottomSheetMenu
+import com.gumlaybeg.nimbletune.ui.component.GlassNavBar
+import com.gumlaybeg.nimbletune.ui.component.GlassNavTab
+import com.gumlaybeg.nimbletune.ui.component.LocalAppBackdrop
+import com.gumlaybeg.nimbletune.ui.component.LocalGlassPerformance
+import com.gumlaybeg.nimbletune.ui.component.LocalLiquidGlassEnabled
 import com.gumlaybeg.nimbletune.ui.component.LocalMenuState
+import com.gumlaybeg.nimbletune.ui.component.LocalReduceAnimation
+import com.gumlaybeg.nimbletune.ui.component.LocalReduceDynamicBlur
 import com.gumlaybeg.nimbletune.ui.component.SearchBar
+import com.gumlaybeg.nimbletune.ui.component.floatingtabbar.FloatingTabBarInlineBehavior
+import com.gumlaybeg.nimbletune.ui.component.floatingtabbar.rememberFloatingTabBarScrollConnection
 import com.gumlaybeg.nimbletune.ui.component.rememberBottomSheetState
 import com.gumlaybeg.nimbletune.ui.component.shimmer.ShimmerTheme
 import com.gumlaybeg.nimbletune.ui.menu.YouTubeSongMenu
 import com.gumlaybeg.nimbletune.ui.player.BottomSheetPlayer
 import com.gumlaybeg.nimbletune.ui.screens.AccountScreen
 import com.gumlaybeg.nimbletune.ui.screens.AlbumScreen
+import com.gumlaybeg.nimbletune.ui.screens.BrowseScreen
 import com.gumlaybeg.nimbletune.ui.screens.HistoryScreen
 import com.gumlaybeg.nimbletune.ui.screens.HomeScreen
 import com.gumlaybeg.nimbletune.ui.screens.LoginScreen
 import com.gumlaybeg.nimbletune.ui.screens.MoodAndGenresScreen
-import com.gumlaybeg.nimbletune.ui.screens.BrowseScreen
 import com.gumlaybeg.nimbletune.ui.screens.Screens
 import com.gumlaybeg.nimbletune.ui.screens.SetupWizard
 import com.gumlaybeg.nimbletune.ui.screens.StatsScreen
@@ -223,14 +237,17 @@ import com.gumlaybeg.nimbletune.utils.scanners.LocalMediaScanner
 import com.gumlaybeg.nimbletune.utils.scanners.LocalMediaScanner.Companion.destroyScanner
 import com.gumlaybeg.nimbletune.utils.scanners.LocalMediaScanner.Companion.scannerActive
 import com.gumlaybeg.nimbletune.utils.scanners.ScannerAbortException
-import com.gumlaybeg.nimbletune.utils.urlEncode
-import com.valentinilk.shimmer.LocalShimmerTheme
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
+import com.valentinilk.shimmer.LocalShimmerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -266,9 +283,7 @@ class MainActivity : ComponentActivity() {
     // storage permission helpers
     val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-//                Toast.makeText(this, "Granted", Toast.LENGTH_SHORT).show()
-            } else {
+            if (!isGranted) {
                 Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
             }
         }
@@ -284,10 +299,10 @@ class MainActivity : ComponentActivity() {
          * While music is playing:
          *      StopMusicOnTaskClearKey true: clearing from recent apps will kill service
          *      StopMusicOnTaskClearKey false: clearing from recent apps will NOT kill service
-         * While music is not playing: 
+         * While music is not playing:
          *      Service will never be automatically killed
          *
-         * Regardless of what happens, queues and last position are saves
+         * Regardless of what happens, queues and last position are saved
          */
         super.onDestroy()
         unbindService(serviceConnection)
@@ -296,9 +311,7 @@ class MainActivity : ComponentActivity() {
             && isFinishing
         ) {
             if (dataStore.get(PersistentQueueKey, true)) {
-//                stopService(Intent(this, MusicService::class.java)) // Believe me, this doesn't actually stop
                 playerConnection?.service?.onDestroy()
-
                 playerConnection = null
             }
         } else {
@@ -325,6 +338,12 @@ class MainActivity : ComponentActivity() {
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
             val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
             val newInterfaceStyle by rememberPreference(NewInterfaceKey, defaultValue = true)
+            val liquidGlassEnabled by rememberPreference(LiquidGlassKey, defaultValue = true)
+            val glassPerformance by rememberPreference(GlassPerformanceKey, defaultValue = false)
+            val reduceAnimation by rememberPreference(ReduceAnimationKey, defaultValue = false)
+            val reduceDynamicBlur by rememberPreference(ReduceDynamicBlurKey, defaultValue = false)
+            val swipeToSkipEnabled by rememberPreference(SwipeToSkip, defaultValue = true)
+
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
                 if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
@@ -362,7 +381,7 @@ class MainActivity : ComponentActivity() {
                                 val result = imageLoader.execute(
                                     ImageRequest.Builder(this@MainActivity)
                                         .data(song.thumbnailUrl)
-                                        .allowHardware(false) // pixel access is not supported on Config#HARDWARE bitmaps
+                                        .allowHardware(false)
                                         .build()
                                 )
                                 (result.drawable as? BitmapDrawable)?.bitmap?.extractThemeColor()
@@ -398,10 +417,8 @@ class MainActivity : ComponentActivity() {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val perms = checkSelfPermission(MEDIA_PERMISSION_LEVEL)
-                    // Check if the permissions for local media access
                     if (!scannerActive.value && autoScan && firstSetupPassed && localLibEnable) {
                         if (perms == PackageManager.PERMISSION_GRANTED) {
-                            // equivalent to (quick scan)
                             try {
                                 withContext(Dispatchers.Main) {
                                     playerConnection?.player?.pause()
@@ -418,7 +435,6 @@ class MainActivity : ComponentActivity() {
                                     strictExtensions,
                                 )
 
-                                // start artist linking job
                                 if (lookupYtmArtists && !scannerActive.value) {
                                     CoroutineScope(Dispatchers.IO).launch {
                                         try {
@@ -444,11 +460,9 @@ class MainActivity : ComponentActivity() {
                                 destroyScanner()
                             }
 
-                            // post scan actions
                             imageCache.purgeCache()
                             playerConnection?.service?.initQueue()
                         } else if (perms == PackageManager.PERMISSION_DENIED) {
-                            // Request the permission using the permission launcher
                             permissionLauncher.launch(MEDIA_PERMISSION_LEVEL)
                         }
                     }
@@ -459,9 +473,19 @@ class MainActivity : ComponentActivity() {
                 pureBlack = pureBlack,
                 themeColor = themeColor
             ) {
-                BoxWithConstraints( // Deprecated. please use the scaffold
-                    modifier = Modifier
-                        .fillMaxSize()
+                val surfaceColor = MaterialTheme.colorScheme.surface
+                val appBackdrop = rememberLayerBackdrop {
+                    drawRect(surfaceColor)
+                    drawContent()
+                }
+                val floatingTabBarScrollConnection = rememberFloatingTabBarScrollConnection(
+                    initialIsInline = false,
+                    scrollThreshold = 50.dp,
+                    inlineBehavior = FloatingTabBarInlineBehavior.OnScrollDown,
+                )
+
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
@@ -483,7 +507,6 @@ class MainActivity : ComponentActivity() {
                         else dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
                     }
                     val tabOpenedFromShortcut = remember {
-                        // reroute to library page for new layout is handled in NavHost section
                         when (intent?.action) {
                             ACTION_SONGS -> if (newInterfaceStyle) NavigationTabNew.LIBRARY else NavigationTab.SONG
                             ACTION_ALBUMS -> if (newInterfaceStyle) NavigationTabNew.LIBRARY else NavigationTab.ALBUM
@@ -491,18 +514,16 @@ class MainActivity : ComponentActivity() {
                             else -> null
                         }
                     }
-                    // setup filters for new layout
                     if (tabOpenedFromShortcut != null && newInterfaceStyle) {
                         var filter by rememberEnumPreference(LibraryFilterKey, LibraryFilter.ALL)
                         filter = when (intent?.action) {
                             ACTION_SONGS -> LibraryFilter.SONGS
                             ACTION_ALBUMS -> LibraryFilter.ALBUMS
                             ACTION_PLAYLISTS -> LibraryFilter.PLAYLISTS
-                            ACTION_SEARCH -> filter // do change filter for search
+                            ACTION_SEARCH -> filter
                             else -> LibraryFilter.ALL
                         }
                     }
-
 
                     val coroutineScope = rememberCoroutineScope()
                     var sharedSong: SongItem? by remember {
@@ -510,7 +531,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     /**
-                     * Directly navigate to a YouTube page given an YouTube url
+                     * Directly navigate to a YouTube page given a YouTube url
                      */
                     fun youtubeNavigator(uri: Uri): Boolean {
                         when (val path = uri.pathSegments.firstOrNull()) {
@@ -554,7 +575,6 @@ class MainActivity : ComponentActivity() {
                         return true
                     }
 
-
                     val (query, onQueryChange) = rememberSaveable(stateSaver = TextFieldValue.Saver) {
                         mutableStateOf(TextFieldValue())
                     }
@@ -580,7 +600,6 @@ class MainActivity : ComponentActivity() {
                             if (youtubeNavigator(it.toUri())) {
                                 // don't do anything
                             } else {
-                                // Use Uri.encode() for URL safety while maintaining space decoding in Navigation
                                 navController.navigate("search/${Uri.encode(it)}")
                                 if (dataStore[PauseSearchHistoryKey] != true) {
                                     database.query {
@@ -619,9 +638,15 @@ class MainActivity : ComponentActivity() {
                         label = ""
                     )
 
+                    val useGlassNavBar = liquidGlassEnabled
+
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
-                        collapsedBound = bottomInset + getNavPadding() + MiniPlayerHeight,
+                        collapsedBound = if (useGlassNavBar && shouldShowNavigationBar && firstSetupPassed) {
+                            1.dp
+                        } else {
+                            bottomInset + getNavPadding() + MiniPlayerHeight
+                        },
                         expandedBound = maxHeight,
                     )
 
@@ -651,6 +676,8 @@ class MainActivity : ComponentActivity() {
                     )
 
                     LaunchedEffect(navBackStackEntry) {
+                        floatingTabBarScrollConnection.expand()
+
                         if (navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
                             val rawQuery = withContext(Dispatchers.IO) {
                                 navBackStackEntry?.arguments?.getString("query").orEmpty()
@@ -673,11 +700,6 @@ class MainActivity : ComponentActivity() {
                             setPreviousTab(it)
                         }
 
-                        /*
-                         * If the current back stack entry matches one of the main screens, but
-                         * is not in the current navigation items, we need to remove the entry
-                         * to avoid entering a "ghost" screen.
-                         */
                         if (Screens.MainScreens.fastAny { it.route == navBackStackEntry?.destination?.route } ||
                             Screens.MainScreensNew.fastAny { it.route == navBackStackEntry?.destination?.route }) {
                             if (!navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
@@ -735,7 +757,12 @@ class MainActivity : ComponentActivity() {
                         LocalDownloadUtil provides downloadUtil,
                         LocalShimmerTheme provides ShimmerTheme,
                         LocalSyncUtils provides syncUtils,
-                        LocalNetworkConnected provides isNetworkConnected
+                        LocalNetworkConnected provides isNetworkConnected,
+                        LocalAppBackdrop provides appBackdrop,
+                        LocalLiquidGlassEnabled provides liquidGlassEnabled,
+                        LocalGlassPerformance provides glassPerformance,
+                        LocalReduceAnimation provides reduceAnimation,
+                        LocalReduceDynamicBlur provides reduceDynamicBlur,
                     ) {
                         Scaffold(
                             topBar = {
@@ -911,95 +938,12 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
-                            bottomBar = {
-                                Box() {
-                                    if (firstSetupPassed) {
-                                        BottomSheetPlayer(
-                                            state = playerBottomSheetState,
-                                            navController = navController
-                                        )
-                                    }
-
-                                    LaunchedEffect(playerBottomSheetState.isExpanded) {
-                                        setSystemBarAppearance(
-                                            (playerBottomSheetState.isExpanded
-                                                    && playerBackground != PlayerBackgroundStyle.DEFAULT) || useDarkTheme
-                                        )
-                                    }
-                                    NavigationBar(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .height(bottomInset + getNavPadding())
-                                            .offset {
-                                                if (navigationBarHeight == 0.dp) {
-                                                    IntOffset(
-                                                        x = 0,
-                                                        y = (bottomInset + NavigationBarHeight).roundToPx()
-                                                    )
-                                                } else {
-                                                    val slideOffset =
-                                                        (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
-                                                            0f,
-                                                            1f
-                                                        )
-                                                    val hideOffset =
-                                                        (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
-                                                    IntOffset(
-                                                        x = 0,
-                                                        y = (slideOffset + hideOffset).roundToPx()
-                                                    )
-                                                }
-                                            }
-                                            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp))
-                                    ) {
-                                        navigationItems.fastForEach { screen ->
-                                            NavigationBarItem(
-                                                selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true,
-                                                icon = {
-                                                    Icon(
-                                                        screen.icon,
-                                                        contentDescription = null
-                                                    )
-                                                },
-                                                label = {
-                                                    if (!slimNav) {
-                                                        Text(
-                                                            text = stringResource(screen.titleId),
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                },
-                                                onClick = {
-                                                    if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                                        navBackStackEntry?.savedStateHandle?.set(
-                                                            "scrollToTop",
-                                                            true
-                                                        )
-                                                        coroutineScope.launch {
-                                                            searchBarScrollBehavior.state.resetHeightOffset()
-                                                        }
-                                                    } else {
-                                                        navController.navigate(screen.route) {
-                                                            popUpTo(navController.graph.startDestinationId) {
-                                                                saveState = true
-                                                            }
-                                                            launchSingleTop = true
-                                                            restoreState = true
-                                                        }
-                                                    }
-
-                                                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            },
                             modifier = Modifier
                                 .fillMaxSize()
+                                .layerBackdrop(appBackdrop)
+                                .nestedScroll(floatingTabBarScrollConnection)
                                 .nestedScroll(searchBarScrollBehavior.nestedScrollConnection)
-                                .background(MaterialTheme.colorScheme.surface)
+                                .background(surfaceColor)
                         ) {
                             val topLevelScreens = remember(navigationItems) {
                                 navigationItems.map { it.route } + "settings"
@@ -1260,6 +1204,220 @@ class MainActivity : ComponentActivity() {
 
                                 composable("setup_wizard") {
                                     SetupWizard(navController)
+                                }
+                            }
+                        }
+
+                        LaunchedEffect(playerBottomSheetState.isExpanded, playerBackground, useDarkTheme) {
+                            setSystemBarAppearance(
+                                (playerBottomSheetState.isExpanded
+                                        && playerBackground != PlayerBackgroundStyle.DEFAULT) || useDarkTheme
+                            )
+                        }
+
+                        if (useGlassNavBar) {
+                            if (firstSetupPassed && (shouldShowNavigationBar || navigationBarHeight > 0.dp)) {
+                                val searchLabel = stringResource(R.string.search)
+                                val glassTabs = remember(navigationItems, searchLabel) {
+                                    navigationItems.map { screen ->
+                                        GlassNavTab(
+                                            route = screen.route,
+                                            label = getString(screen.titleId),
+                                            icon = screen.icon,
+                                        )
+                                    } + GlassNavTab(
+                                        route = "search",
+                                        label = searchLabel,
+                                        icon = Icons.Rounded.Search,
+                                    )
+                                }
+
+                                val selectedTabIndex = remember(navBackStackEntry, navigationItems, active) {
+                                    if (active || navBackStackEntry?.destination?.route?.startsWith("search/") == true) {
+                                        glassTabs.lastIndex
+                                    } else {
+                                        val idx = navigationItems.indexOfFirst { screen ->
+                                            navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
+                                        }
+                                        if (idx >= 0) idx else 0
+                                    }
+                                }
+
+                                val currentConnection = playerConnection
+                                val playerMetadata by remember(currentConnection) {
+                                    currentConnection?.mediaMetadata ?: flowOf(null)
+                                }.collectAsState(initial = null)
+                                val isPlaying by remember(currentConnection) {
+                                    currentConnection?.isPlaying ?: flowOf(false)
+                                }.collectAsState(initial = false)
+                                val playbackState by remember(currentConnection) {
+                                    currentConnection?.playbackState ?: flowOf(Player.STATE_IDLE)
+                                }.collectAsState(initial = Player.STATE_IDLE)
+                                val canSkipNext by remember(currentConnection) {
+                                    currentConnection?.canSkipNext ?: flowOf(false)
+                                }.collectAsState(initial = false)
+                                val canSkipPrevious by remember(currentConnection) {
+                                    currentConnection?.canSkipPrevious ?: flowOf(false)
+                                }.collectAsState(initial = false)
+
+                                GlassNavBar(
+                                    tabs = glassTabs,
+                                    selectedIndex = selectedTabIndex,
+                                    onTabSelected = { index ->
+                                        if (index == glassTabs.lastIndex) {
+                                            onActiveChange(true)
+                                            coroutineScope.launch {
+                                                delay(100)
+                                                searchBarFocusRequester.requestFocus()
+                                            }
+                                        } else {
+                                            val screen = navigationItems[index]
+                                            if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                                navBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                                coroutineScope.launch {
+                                                    searchBarScrollBehavior.state.resetHeightOffset()
+                                                }
+                                            } else {
+                                                floatingTabBarScrollConnection.expand()
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                            }
+                                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        }
+                                    },
+                                    scrollConnection = floatingTabBarScrollConnection,
+                                    mediaMetadata = if (!playerBottomSheetState.isDismissed) playerMetadata else null,
+                                    isPlaying = isPlaying,
+                                    isLoading = playbackState == Player.STATE_BUFFERING,
+                                    canSkipNext = canSkipNext,
+                                    canSkipPrevious = canSkipPrevious,
+                                    swipeToSkipEnabled = swipeToSkipEnabled,
+                                    onPlayPause = {
+                                        val player = playerConnection?.player ?: return@GlassNavBar
+                                        if (playbackState == Player.STATE_ENDED) {
+                                            player.seekTo(0, 0)
+                                            player.playWhenReady = true
+                                        } else {
+                                            player.togglePlayPause()
+                                        }
+                                    },
+                                    onNext = { playerConnection?.player?.seekToNext() },
+                                    onPrevious = { playerConnection?.player?.seekToPrevious() },
+                                    onExpand = { playerBottomSheetState.expandSoft() },
+                                    onPullDelta = { dy -> playerBottomSheetState.dispatchRawDelta(dy) },
+                                    onPullEnd = { velocity -> playerBottomSheetState.performFling(velocity, null) },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .offset {
+                                            if (navigationBarHeight == 0.dp) {
+                                                IntOffset(
+                                                    x = 0,
+                                                    y = (bottomInset + NavigationBarHeight + MiniPlayerHeight + 32.dp).roundToPx()
+                                                )
+                                            } else {
+                                                val slideOffset =
+                                                    (bottomInset + NavigationBarHeight + MiniPlayerHeight + 32.dp) *
+                                                        playerBottomSheetState.progress.coerceIn(0f, 1f)
+                                                val hideOffset =
+                                                    (bottomInset + NavigationBarHeight + MiniPlayerHeight + 32.dp) *
+                                                        (1f - navigationBarHeight / NavigationBarHeight)
+                                                IntOffset(
+                                                    x = 0,
+                                                    y = (slideOffset + hideOffset).roundToPx()
+                                                )
+                                            }
+                                        },
+                                )
+                            }
+
+                            if (firstSetupPassed) {
+                                BottomSheetPlayer(
+                                    state = playerBottomSheetState,
+                                    navController = navController,
+                                    showCollapsedContent = !shouldShowNavigationBar,
+                                    modifier = Modifier.align(Alignment.BottomCenter),
+                                )
+                            }
+                        } else {
+                            if (firstSetupPassed) {
+                                BottomSheetPlayer(
+                                    state = playerBottomSheetState,
+                                    navController = navController,
+                                    modifier = Modifier.align(Alignment.BottomCenter),
+                                )
+                            }
+
+                            NavigationBar(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .height(bottomInset + getNavPadding())
+                                    .offset {
+                                        if (navigationBarHeight == 0.dp) {
+                                            IntOffset(
+                                                x = 0,
+                                                y = (bottomInset + NavigationBarHeight).roundToPx()
+                                            )
+                                        } else {
+                                            val slideOffset =
+                                                (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
+                                                    0f,
+                                                    1f
+                                                )
+                                            val hideOffset =
+                                                (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
+                                            IntOffset(
+                                                x = 0,
+                                                y = (slideOffset + hideOffset).roundToPx()
+                                            )
+                                        }
+                                    }
+                                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp))
+                            ) {
+                                navigationItems.fastForEach { screen ->
+                                    NavigationBarItem(
+                                        selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true,
+                                        icon = {
+                                            Icon(
+                                                screen.icon,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        label = {
+                                            if (!slimNav) {
+                                                Text(
+                                                    text = stringResource(screen.titleId),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                                navBackStackEntry?.savedStateHandle?.set(
+                                                    "scrollToTop",
+                                                    true
+                                                )
+                                                coroutineScope.launch {
+                                                    searchBarScrollBehavior.state.resetHeightOffset()
+                                                }
+                                            } else {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                            }
+
+                                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        }
+                                    )
                                 }
                             }
                         }

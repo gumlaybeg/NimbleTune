@@ -24,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
+import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.BlurOff
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.DarkMode
@@ -32,7 +34,9 @@ import androidx.compose.material.icons.rounded.FolderCopy
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Reorder
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Tab
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -62,10 +66,14 @@ import com.gumlaybeg.nimbletune.constants.DefaultOpenTabNewKey
 import com.gumlaybeg.nimbletune.constants.DynamicThemeKey
 import com.gumlaybeg.nimbletune.constants.EnabledTabsKey
 import com.gumlaybeg.nimbletune.constants.FlatSubfoldersKey
+import com.gumlaybeg.nimbletune.constants.GlassPerformanceKey
+import com.gumlaybeg.nimbletune.constants.LiquidGlassKey
 import com.gumlaybeg.nimbletune.constants.ListItemHeight
 import com.gumlaybeg.nimbletune.constants.NewInterfaceKey
 import com.gumlaybeg.nimbletune.constants.PlayerBackgroundStyleKey
 import com.gumlaybeg.nimbletune.constants.PureBlackKey
+import com.gumlaybeg.nimbletune.constants.ReduceAnimationKey
+import com.gumlaybeg.nimbletune.constants.ReduceDynamicBlurKey
 import com.gumlaybeg.nimbletune.constants.ShowLikedAndDownloadedPlaylist
 import com.gumlaybeg.nimbletune.constants.SlimNavBarKey
 import com.gumlaybeg.nimbletune.constants.SwipeToQueueKey
@@ -102,6 +110,10 @@ fun AppearanceSettings(
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(DefaultOpenTabKey, defaultValue = NavigationTab.HOME)
     val (defaultOpenTabNew, onDefaultOpenTabNewChange) = rememberEnumPreference(DefaultOpenTabNewKey, defaultValue = NavigationTabNew.HOME)
     val (newInterfaceStyle, onNewInterfaceStyleChange) = rememberPreference(key = NewInterfaceKey, defaultValue = true)
+    val (liquidGlass, onLiquidGlassChange) = rememberPreference(key = LiquidGlassKey, defaultValue = true)
+    val (glassPerformance, onGlassPerformanceChange) = rememberPreference(key = GlassPerformanceKey, defaultValue = false)
+    val (reduceAnimation, onReduceAnimationChange) = rememberPreference(key = ReduceAnimationKey, defaultValue = false)
+    val (reduceDynamicBlur, onReduceDynamicBlurChange) = rememberPreference(key = ReduceDynamicBlurKey, defaultValue = false)
     val (showLikedAndDownloadedPlaylist, onShowLikedAndDownloadedPlaylistChange) = rememberPreference(key = ShowLikedAndDownloadedPlaylist, defaultValue = true)
     val (swipe2Queue, onSwipe2QueueChange) = rememberPreference(SwipeToQueueKey, defaultValue = true)
     val (slimNav, onSlimNavChange) = rememberPreference(SlimNavBarKey, defaultValue = false)
@@ -365,66 +377,136 @@ fun AppearanceSettings(
 
         ExpressiveSettingGroup(
             title = stringResource(R.string.grp_interface),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = rememberVectorPainter(Icons.Rounded.Palette),
-                    title = { Text(stringResource(R.string.new_interface)) },
-                    trailingContent = {
-                        ModernSwitch(
-                            checked = newInterfaceStyle,
-                            onCheckedChange = onNewInterfaceStyleChange
-                        )
-                    },
-                    onClick = { onNewInterfaceStyleChange(!newInterfaceStyle) }
-                ),
-                Material3SettingsItem(
-                    icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.PlaylistPlay),
-                    title = { Text(stringResource(R.string.show_liked_and_downloaded_playlist)) },
-                    trailingContent = {
-                        ModernSwitch(
-                            checked = showLikedAndDownloadedPlaylist,
-                            onCheckedChange = onShowLikedAndDownloadedPlaylistChange
-                        )
-                    },
-                    onClick = { onShowLikedAndDownloadedPlaylistChange(!showLikedAndDownloadedPlaylist) }
-                ),
-                Material3SettingsItem(
-                    icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.PlaylistAdd),
-                    title = { Text(stringResource(R.string.swipe2Queue)) },
-                    description = { Text(stringResource(R.string.swipe2Queue_description)) },
-                    trailingContent = {
-                        ModernSwitch(
-                            checked = swipe2Queue,
-                            onCheckedChange = onSwipe2QueueChange
-                        )
-                    },
-                    onClick = { onSwipe2QueueChange(!swipe2Queue) }
-                ),
-                Material3SettingsItem(
-                    icon = rememberVectorPainter(Icons.Rounded.MoreHoriz),
-                    title = { Text(stringResource(R.string.slim_navbar_title)) },
-                    description = { Text(stringResource(R.string.slim_navbar_description)) },
-                    trailingContent = {
-                        ModernSwitch(
-                            checked = slimNav,
-                            onCheckedChange = onSlimNavChange
-                        )
-                    },
-                    onClick = { onSlimNavChange(!slimNav) }
-                ),
-                Material3SettingsItem(
-                    icon = rememberVectorPainter(Icons.Rounded.FolderCopy),
-                    title = { Text(stringResource(R.string.flat_subfolders_title)) },
-                    description = { Text(stringResource(R.string.flat_subfolders_description)) },
-                    trailingContent = {
-                        ModernSwitch(
-                            checked = flatSubfolders,
-                            onCheckedChange = onFlatSubfoldersChange
-                        )
-                    },
-                    onClick = { onFlatSubfoldersChange(!flatSubfolders) }
+            items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.Palette),
+                        title = { Text(stringResource(R.string.new_interface)) },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = newInterfaceStyle,
+                                onCheckedChange = onNewInterfaceStyleChange
+                            )
+                        },
+                        onClick = { onNewInterfaceStyleChange(!newInterfaceStyle) }
+                    )
                 )
-            )
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.WaterDrop),
+                        title = { Text("Liquid Glass Navigation Bar") },
+                        description = { Text("Floating glass tab bar with morphing scroll collapse and interactive lens pill") },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = liquidGlass,
+                                onCheckedChange = onLiquidGlassChange
+                            )
+                        },
+                        onClick = { onLiquidGlassChange(!liquidGlass) }
+                    )
+                )
+                if (liquidGlass) {
+                    add(
+                        Material3SettingsItem(
+                            icon = rememberVectorPainter(Icons.Rounded.Speed),
+                            title = { Text("Glass Performance Mode") },
+                            description = { Text("Uses frosted blur without the lens refraction shader") },
+                            trailingContent = {
+                                ModernSwitch(
+                                    checked = glassPerformance,
+                                    onCheckedChange = onGlassPerformanceChange
+                                )
+                            },
+                            onClick = { onGlassPerformanceChange(!glassPerformance) }
+                        )
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = rememberVectorPainter(Icons.Rounded.Animation),
+                            title = { Text("Reduce Nav Bar Animations") },
+                            description = { Text("Snap the selection pill without lift or squash") },
+                            trailingContent = {
+                                ModernSwitch(
+                                    checked = reduceAnimation,
+                                    onCheckedChange = onReduceAnimationChange
+                                )
+                            },
+                            onClick = { onReduceAnimationChange(!reduceAnimation) }
+                        )
+                    )
+                    add(
+                        Material3SettingsItem(
+                            icon = rememberVectorPainter(Icons.Rounded.BlurOff),
+                            title = { Text("Reduce Dynamic Blur") },
+                            description = { Text("Use a solid surface fill instead of live backdrop blur") },
+                            trailingContent = {
+                                ModernSwitch(
+                                    checked = reduceDynamicBlur,
+                                    onCheckedChange = onReduceDynamicBlurChange
+                                )
+                            },
+                            onClick = { onReduceDynamicBlurChange(!reduceDynamicBlur) }
+                        )
+                    )
+                }
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.PlaylistPlay),
+                        title = { Text(stringResource(R.string.show_liked_and_downloaded_playlist)) },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = showLikedAndDownloadedPlaylist,
+                                onCheckedChange = onShowLikedAndDownloadedPlaylistChange
+                            )
+                        },
+                        onClick = { onShowLikedAndDownloadedPlaylistChange(!showLikedAndDownloadedPlaylist) }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.AutoMirrored.Rounded.PlaylistAdd),
+                        title = { Text(stringResource(R.string.swipe2Queue)) },
+                        description = { Text(stringResource(R.string.swipe2Queue_description)) },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = swipe2Queue,
+                                onCheckedChange = onSwipe2QueueChange
+                            )
+                        },
+                        onClick = { onSwipe2QueueChange(!swipe2Queue) }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.MoreHoriz),
+                        title = { Text(stringResource(R.string.slim_navbar_title)) },
+                        description = { Text(stringResource(R.string.slim_navbar_description)) },
+                        enabled = !liquidGlass,
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = slimNav,
+                                onCheckedChange = onSlimNavChange,
+                                enabled = !liquidGlass
+                            )
+                        },
+                        onClick = { if (!liquidGlass) onSlimNavChange(!slimNav) }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        icon = rememberVectorPainter(Icons.Rounded.FolderCopy),
+                        title = { Text(stringResource(R.string.flat_subfolders_title)) },
+                        description = { Text(stringResource(R.string.flat_subfolders_description)) },
+                        trailingContent = {
+                            ModernSwitch(
+                                checked = flatSubfolders,
+                                onCheckedChange = onFlatSubfoldersChange
+                            )
+                        },
+                        onClick = { onFlatSubfoldersChange(!flatSubfolders) }
+                    )
+                )
+            }
         )
 
         ExpressiveSettingGroup(

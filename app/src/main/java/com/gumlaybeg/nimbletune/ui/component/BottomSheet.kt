@@ -65,7 +65,6 @@ import com.gumlaybeg.nimbletune.constants.NavigationBarAnimationSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -81,6 +80,7 @@ fun BottomSheet(
     onDismiss: (() -> Unit)? = null,
     onCollapsedContentClick: (() -> Unit)? = null,
     backHandlerEnabled: Boolean = true,
+    showCollapsedContent: Boolean = true,
     collapsedContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -122,7 +122,7 @@ fun BottomSheet(
             )
         }
 
-        if (!state.isExpanded && (onDismiss == null || !state.isDismissed)) {
+        if (showCollapsedContent && !state.isExpanded && (onDismiss == null || !state.isDismissed)) {
             Box(
                 modifier =
                     Modifier
