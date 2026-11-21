@@ -1,5 +1,6 @@
 package com.gumlaybeg.nimbletune.ui.component
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -37,8 +38,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +55,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -70,6 +74,7 @@ import com.gumlaybeg.nimbletune.ui.component.floatingtabbar.FloatingTabBarScroll
 import com.gumlaybeg.nimbletune.ui.utils.fadingEdge
 import com.gumlaybeg.nimbletune.ui.utils.imageCache
 import com.gumlaybeg.nimbletune.ui.utils.resize
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @Immutable
@@ -95,6 +100,7 @@ fun GlassNavBar(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
+    onDismiss: () -> Unit = {},
     onPullDelta: (Float) -> Unit,
     onPullEnd: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -136,6 +142,7 @@ fun GlassNavBar(
                     onNext = onNext,
                     onPrevious = onPrevious,
                     onExpand = onExpand,
+                    onDismiss = onDismiss,
                     onPullDelta = onPullDelta,
                     onPullEnd = onPullEnd,
                     modifier = accessoryModifier.then(glassSurface()),
@@ -157,6 +164,7 @@ fun GlassNavBar(
                     onNext = onNext,
                     onPrevious = onPrevious,
                     onExpand = onExpand,
+                    onDismiss = onDismiss,
                     onPullDelta = onPullDelta,
                     onPullEnd = onPullEnd,
                     modifier = accessoryModifier
@@ -254,12 +262,15 @@ private fun GlassNowPlaying(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
+    onDismiss: () -> Unit,
     onPullDelta: (Float) -> Unit,
     onPullEnd: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
     val layoutDirection = LocalLayoutDirection.current
+    val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
     val pressSource = remember { MutableInteractionSource() }
     val isPressed by pressSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
@@ -268,13 +279,23 @@ private fun GlassNowPlaying(
         label = "accessoryPressScale",
     )
 
+    val dismissOffsetY = remember { Animatable(0f) }
+    val dismissThresholdPx = with(density) { 48.dp.toPx() }
+    val maxDismissDragPx = with(density) { 120.dp.toPx() }
+
+    LaunchedEffect(mediaMetadata.id) {
+        dismissOffsetY.snapTo(0f)
+    }
+
     val titleStyle = MaterialTheme.typography.titleMedium.copy(
         fontSize = ACCESSORY_TITLE_SIZE,
+        lineHeight = 17.sp,
         fontWeight = ACCESSORY_TITLE_WEIGHT,
         letterSpacing = ACCESSORY_TITLE_TRACKING,
     )
     val artistStyle = MaterialTheme.typography.bodyMedium.copy(
         fontSize = ACCESSORY_ARTIST_SIZE,
+        lineHeight = 15.sp,
         letterSpacing = ACCESSORY_ARTIST_TRACKING,
     )
     val glyphSlot = if (isInline) 32.dp else 40.dp
@@ -282,6 +303,7 @@ private fun GlassNowPlaying(
 
     val currentOnNext by rememberUpdatedState(onNext)
     val currentOnPrevious by rememberUpdatedState(onPrevious)
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
     val currentOnPullDelta by rememberUpdatedState(onPullDelta)
     val currentOnPullEnd by rememberUpdatedState(onPullEnd)
     val currentCanSkipNext by rememberUpdatedState(canSkipNext)
@@ -290,56 +312,103 @@ private fun GlassNowPlaying(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .pointerInput(swipeToSkipEnabled, layoutDirection) {
+            .pointerInput(swipeToSkipEnabled, layoutDirection, mediaMetadata.id) {
                 val velocityTracker = VelocityTracker()
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     velocityTracker.resetTracking()
                     velocityTracker.addPointerInputChange(down)
 
-                    var dragMode = 0
+                    var dragMode = 0 // 1 = pull up to expand, 2 = horizontal skip, 3 = pull down to close
                     var totalDx = 0f
                     var totalDy = 0f
+                    var handledEnd = false
                     val touchSlop = viewConfiguration.touchSlop
 
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (!change.pressed) {
-                            when (dragMode) {
-                                1 -> currentOnPullEnd(-velocityTracker.calculateVelocity().y)
-                                2 -> if (swipeToSkipEnabled && abs(totalDx) > 90f) {
-                                    val dirDx = if (layoutDirection == LayoutDirection.Rtl) -totalDx else totalDx
-                                    if (dirDx < 0 && currentCanSkipNext) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        currentOnNext()
-                                    } else if (dirDx > 0 && currentCanSkipPrevious) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        currentOnPrevious()
+                    try {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) {
+                                handledEnd = true
+                                when (dragMode) {
+                                    1 -> currentOnPullEnd(-velocityTracker.calculateVelocity().y)
+                                    2 -> if (swipeToSkipEnabled && abs(totalDx) > 90f) {
+                                        val dirDx = if (layoutDirection == LayoutDirection.Rtl) -totalDx else totalDx
+                                        if (dirDx < 0 && currentCanSkipNext) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            currentOnNext()
+                                        } else if (dirDx > 0 && currentCanSkipPrevious) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            currentOnPrevious()
+                                        }
+                                    }
+                                    3 -> {
+                                        val velocityY = velocityTracker.calculateVelocity().y
+                                        if (dismissOffsetY.value >= dismissThresholdPx || velocityY > 500f) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            currentOnDismiss()
+                                        } else {
+                                            coroutineScope.launch {
+                                                dismissOffsetY.animateTo(
+                                                    0f,
+                                                    spring(stiffness = Spring.StiffnessMediumLow),
+                                                )
+                                            }
+                                        }
                                     }
                                 }
+                                break
                             }
-                            break
-                        }
 
-                        val delta = change.positionChange()
-                        totalDx += delta.x
-                        totalDy += delta.y
+                            val delta = change.positionChange()
+                            totalDx += delta.x
+                            totalDy += delta.y
 
-                        if (dragMode == 0) {
-                            if (abs(totalDy) > touchSlop && abs(totalDy) >= abs(totalDx)) {
-                                dragMode = 1
-                            } else if (swipeToSkipEnabled && abs(totalDx) > touchSlop) {
-                                dragMode = 2
+                            if (dragMode == 0) {
+                                if (abs(totalDy) > touchSlop && abs(totalDy) >= abs(totalDx)) {
+                                    dragMode = if (totalDy > 0f) 3 else 1
+                                } else if (swipeToSkipEnabled && abs(totalDx) > touchSlop) {
+                                    dragMode = 2
+                                }
+                            }
+
+                            when (dragMode) {
+                                1 -> {
+                                    velocityTracker.addPointerInputChange(change)
+                                    currentOnPullDelta(delta.y)
+                                    change.consume()
+                                }
+                                3 -> {
+                                    velocityTracker.addPointerInputChange(change)
+                                    val nextOffset = dismissOffsetY.value + delta.y
+                                    if (nextOffset <= 0f && delta.y < 0f) {
+                                        coroutineScope.launch { dismissOffsetY.snapTo(0f) }
+                                        dragMode = 1
+                                        currentOnPullDelta(nextOffset)
+                                    } else {
+                                        coroutineScope.launch {
+                                            dismissOffsetY.snapTo(nextOffset.coerceIn(0f, maxDismissDragPx))
+                                        }
+                                    }
+                                    change.consume()
+                                }
+                                2 -> {
+                                    change.consume()
+                                }
                             }
                         }
-
-                        if (dragMode == 1) {
-                            velocityTracker.addPointerInputChange(change)
-                            currentOnPullDelta(delta.y)
-                            change.consume()
-                        } else if (dragMode == 2) {
-                            change.consume()
+                    } finally {
+                        if (!handledEnd) {
+                            when (dragMode) {
+                                1 -> currentOnPullEnd(0f)
+                                3 -> coroutineScope.launch {
+                                    dismissOffsetY.animateTo(
+                                        0f,
+                                        spring(stiffness = Spring.StiffnessMediumLow),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -347,6 +416,8 @@ private fun GlassNowPlaying(
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
+                translationY = dismissOffsetY.value
+                alpha = (1f - (dismissOffsetY.value / (dismissThresholdPx * 2f))).coerceIn(0f, 1f)
             }
             .then(modifier)
             .clickable(
@@ -410,11 +481,14 @@ private fun GlassNowPlaying(
                     style = titleStyle,
                     color = contentColor,
                 )
-                FadingLine(
-                    text = mediaMetadata.artists.joinToString { it.name },
-                    style = artistStyle,
-                    color = secondary,
-                )
+                val artistText = mediaMetadata.artists.joinToString { it.name }
+                if (artistText.isNotBlank()) {
+                    FadingLine(
+                        text = artistText,
+                        style = artistStyle,
+                        color = secondary,
+                    )
+                }
             }
 
             if (isLoading) {

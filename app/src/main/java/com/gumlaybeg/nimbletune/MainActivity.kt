@@ -1309,6 +1309,14 @@ class MainActivity : ComponentActivity() {
                                     onNext = { playerConnection?.player?.seekToNext() },
                                     onPrevious = { playerConnection?.player?.seekToPrevious() },
                                     onExpand = { playerBottomSheetState.expandSoft() },
+                                    onDismiss = {
+                                        playerConnection?.let { conn ->
+                                            conn.player.stop()
+                                            conn.player.clearMediaItems()
+                                            conn.service.deInitQueue()
+                                        }
+                                        playerBottomSheetState.dismiss()
+                                    },
                                     onPullDelta = { dy -> playerBottomSheetState.dispatchRawDelta(dy) },
                                     onPullEnd = { velocity -> playerBottomSheetState.performFling(velocity, null) },
                                     modifier = Modifier
