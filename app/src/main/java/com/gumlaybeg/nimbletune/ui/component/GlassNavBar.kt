@@ -297,7 +297,7 @@ private fun GlassNowPlaying(
                     velocityTracker.resetTracking()
                     velocityTracker.addPointerInputChange(down)
 
-                    var dragMode = 0 // 0 = undecided, 1 = vertical pull, 2 = horizontal skip
+                    var dragMode = 0
                     var totalDx = 0f
                     var totalDy = 0f
                     val touchSlop = viewConfiguration.touchSlop
@@ -435,7 +435,7 @@ private fun GlassNowPlaying(
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = stringResource(if (isPlaying) R.string.pause else R.string.play),
+                        contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
                         tint = contentColor,
                         modifier = Modifier.size(glyphSize),
                     )
